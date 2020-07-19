@@ -48,6 +48,15 @@ class Mail(object):
         self.islast = False
         self.thread_head = None
 
+    def mark_readed(self):
+        name = os.path.basename(self.path)
+
+        cur = os.path.dirname(self.path)
+        cur = os.path.dirname(cur)
+        cur = os.path.join(cur, 'cur')
+        cur = os.path.join(cur, name)
+
+        os.rename(self.path, cur)
 
 
     def In_reply_to(self):
@@ -56,11 +65,17 @@ class Mail(object):
     def Message_id(self):
         return self.mail.get("Message-Id", '').strip()
 
-    def date(self):
+    def Date(self):
         return self.mail.get("Date")
 
     def From(self):
         return self.mail.get("From")
+
+    def To(self):
+        return self.mail.get("TO")
+
+    def Cc(self):
+        return self.mail.get("Cc")
 
     def Date_ts(self):
         d = self.mail.get("Date")
@@ -68,7 +83,7 @@ class Mail(object):
         return time.mktime(d)
 
     def Subject(self):
-        subject = self.mail.get('Subject').replace('\n', ' ').replace('\r', '')
+        subject = self.mail.get('Subject').replace('\n', '').replace('\r', '')
         subject = decode_header(subject)[0]
 
         if subject[1]:
@@ -76,6 +91,20 @@ class Mail(object):
         else:
             subject = subject[0]
         return subject
+
+    def Body(self):
+        b = self.mail
+
+        if b.is_multipart():
+            for payload in b.get_payload():
+                return payload.get_payload()
+        else:
+            return b.get_payload()
+
+        #body = self.mail.get_body(('plain',))
+        #if body:
+        #    return body.get_content()
+        #return ''
 
     def sort(self, index, head):
         self.index = index
@@ -99,14 +128,25 @@ class Mail(object):
         return '%s%s' % (self.thread_prefix(), subject)
 
     def thread_prefix(self):
-        if self.index > 0:
-            if self.isfirst:
-                prefix = '`->'
-            else:
-                prefix = '|->'
+        if self.index == 0:
+            return ''
+
+        prefix = '->'
+
+        #if self.index > 0:
+        #    if self.isfirst:
+        #    else:
+        #        prefix = '|->'
+        #else:
+        #    prefix = ''
+        p = self
+        while p.parent.parent:
+            p = p.parent
+
+        if p.islast:
+            return ' %s|%s' % ('  ' * (self.index - 1),  prefix)
         else:
-            prefix = ''
-        return (' ' * self.index) + prefix
+            return ' |%s%s' % ('  ' * (self.index - 1),  prefix)
 
 
     def output(self, o):
@@ -137,6 +177,7 @@ class Mbox(object):
             for mm in self.mail_list:
                 if mm.Message_id() == m.In_reply_to():
                     mm.sub_thread.append(m)
+                    m.parent = mm
                     break
             else:
                 self.top.append(m)
