@@ -7,25 +7,115 @@ from frainui import LIST
 import frainui
 from pyvim import log as logging
 import time
+import email
+import os
 
 class g:
     default = None
+    last_subject = None
+    listwin = None
+
+def need_hide_subject(m):
+    m.hide_subject = False
+
+    subject = m.Subject()
+    if m.index > 0:
+        if subject.startswith('Re: '):
+            if subject[4:] == g.last_subject:
+                m.hide_subject = True
+                return
+        else:
+            if subject == g.last_subject:
+                m.hide_subject = True
+                return
+
+    g.last_subject = subject
+
+
+def display(m):
+    if m.isnew:
+        stat = '*'
+    else:
+        stat = ' '
+
+    date = m.Date_ts()
+    date = time.strftime("%m-%d %H:%M", time.localtime(date))
+
+
+    if m.hide_subject:
+        subject = ''
+    else:
+        subject = m.Subject()
+
+    subject = '%s %s' % (m.thread_prefix(), subject)
+    subject = subject.ljust(90)[0:90]
+
+    f = m.From()
+    f = fm.EmailAddr(f)
+    f = f.short
+    if f != '':
+        f = 'From: %s' % f
+
+    f = f.ljust(20)[0:20]
+
+    fmt = '{stat} {subject} \\green;{_from}\\end; {date}'
+    return fmt.format(stat = stat,
+                   subject = subject,
+                   _from = f,
+                   date = date);
+
+
+
+def show_header_addr(b, n, h):
+    if not h:
+        return
+
+    t = h.replace('\n', '').split(',')
+
+    b.append(n + t[0])
+    for tt in t[1:]:
+        b.append('   ' + tt)
 
 def leaf_handle(leaf, listwin):
     mail = leaf.ctx
 
-    vim.command('r  ' + mail.path)
-    vim.command("setlocal nomodifiable")
     vim.command("set filetype=fmpager")
+
+    b = vim.current.buffer
+    del b[:]
+
+    s = 'Subject: ' + mail.Subject()
+
+    b[0] = s
+
+    b.append('Date: ' + mail.Date())
+    b.append('From: ' + mail.From())
+
+    show_header_addr(b, 'To: ', mail.To())
+    show_header_addr(b, 'Cc: ', mail.Cc())
+
+    b.append('')
+
+    for line in mail.Body().split('\n'):
+        b.append(line)
+
+    vim.command("setlocal nomodifiable")
+
+    if mail.isnew:
+        mail.mark_readed()
+
+        mail.isnew = False
+
+        leaf.update(display(mail))
+
+#        g.listwin.refresh()
+
 
 
 def get_child(node, listwin):
     mbox = fm.Mbox(fm.conf.mbox[0])
 
     ms = mbox.output(reverse=True)
-
-
-    fmt = '{stat} {subject} {_from} {date}'
 
     head = None
     for m in ms:
@@ -36,36 +126,18 @@ def get_child(node, listwin):
 
             head = m.thread_head
 
-        if m.isnew:
-            stat = '*'
-        else:
-            stat = ' '
+        need_hide_subject(m)
 
-        date = m.Date_ts()
-        date = time.strftime("%m-%d %H:%M", time.localtime(date))
+        s = display(m)
 
-        subject = '%s %s' % (m.thread_prefix(), m.Subject())
-        subject = subject.ljust(80)[0:80]
+        name = os.path.basename(m.path)
 
-        f = m.From()
-        f = fm.EmailAddr(f)
-        f = f.short
-        if f != '':
-            f = 'From: %s' % f
-
-        f = f.ljust(20)[0:20]
-
-        s = fmt.format(stat = stat,
-                       subject = subject,
-                       _from = f,
-                       date = date);
-
-        l = frainui.Leaf(s, m, leaf_handle)
+        l = frainui.Leaf(name, m, leaf_handle, display = s)
         node.append(l)
 
 
 def list_root(node, listwin):
-    r = frainui.Node("FM.feng mail", None, get_child)
+    r = frainui.Node("FM me", None, get_child)
     node.append(r)
 
     if g.default == None:
@@ -91,3 +163,5 @@ def Mail():
     listwin.show()
     listwin.refresh()
     g.default.node_open()
+
+    g.listwin = listwin
