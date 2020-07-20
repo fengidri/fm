@@ -39,7 +39,16 @@ class Mail(object):
         self.parent = None
         self.sub_thread = []
 
-        c = open(path).read()
+        for e in ['UTF-8', 'Latin-1']:
+            try:
+                c = open(path, encoding = e).read()
+                break
+            except UnicodeDecodeError:
+                pass
+        else:
+            raise 'UnicodeDecodeError: %s' % path
+
+
 
         self.mail = email.message_from_string(c)
         self.isnew = False
