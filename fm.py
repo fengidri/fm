@@ -280,6 +280,7 @@ class Conf:
                 self.mbox.append(box)
 
         self.me = c.get('user')
+        self.name = c.get('name', self.me.split('@')[0])
 
 conf = Conf()
 
