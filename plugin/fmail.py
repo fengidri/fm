@@ -117,7 +117,8 @@ def leaf_handle(leaf, listwin):
 
 
 def get_child(node, listwin):
-    mbox = fm.Mbox(fm.conf.mbox[0])
+    mdir = node.ctx
+    mbox = fm.Mbox(mdir['path'])
 
     ms = mbox.output(reverse=True)
 
@@ -141,11 +142,14 @@ def get_child(node, listwin):
 
 
 def list_root(node, listwin):
-    r = frainui.Node("FM me", None, get_child)
-    node.append(r)
 
-    if g.default == None:
-        g.default = r
+    for mdir in fm.conf.mbox:
+
+        r = frainui.Node(mdir['name'], mdir, get_child)
+        node.append(r)
+
+        if mdir.get('default'):
+            g.default = r
 
 
 
@@ -159,14 +163,13 @@ def Mail():
     if not fm.conf.mbox:
         return
 
-    mbox = fm.Mbox(fm.conf.mbox[0])
-
-
     listwin = LIST("frain", list_root, ft='fmindex',
             use_current_buffer = True)
+
     listwin.show()
     listwin.refresh()
-    g.default.node_open()
+    if g.default:
+        g.default.node_open()
 
     g.listwin = listwin
 
