@@ -10,6 +10,7 @@ import time
 import email
 import os
 
+
 class g:
     default = None
     last_subject = None
@@ -94,10 +95,13 @@ def leaf_handle(leaf, listwin):
     show_header_addr(b, 'To: ', mail.To())
     show_header_addr(b, 'Cc: ', mail.Cc())
 
-    b.append('')
+    b.append('=' * 80)
 
     for line in mail.Body().split('\n'):
         b.append(line)
+
+    b.append('--')
+    b.append('=%s' % mail.path)
 
     vim.command("setlocal nomodifiable")
 
@@ -165,3 +169,25 @@ def Mail():
     g.default.node_open()
 
     g.listwin = listwin
+
+@pyvim.cmd()
+def MailSaveId():
+    line = vim.current.buffer[-1]
+    if line[0] != '=':
+        return
+
+    path = line[1:]
+
+    m = fm.Mail(path)
+    subject = m.Subject()
+    Id = m.Message_id()
+
+    f = os.environ.get('message_id_file')
+    if not f:
+        return
+
+    open(f, 'w').write('%s\n%s\n' % (subject, Id))
+
+    pyvim.echo('save message-id to %s' % f)
+
+
