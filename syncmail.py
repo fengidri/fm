@@ -13,7 +13,7 @@ import transfermail
 
 
 class config:
-    confd = os.path.expanduser("~/.syncmail")
+    confd = os.path.expanduser("~/.fm.d")
     server   = None
     port     = None
     user     = None
@@ -25,15 +25,18 @@ class config:
     transfer =  None
 
 def conf():
-    path = os.path.expanduser("~/.syncmailrc")
+    path = os.path.expanduser("~/.fm.json")
     c = open(path).read()
     j = json.loads(c)
 
-    config.server   = j['server']
-    config.port     = j['port']
+    s = j['server']
+
     config.user     = j['user']
-    config.password = j['password']
-    config.folders = j['folders']
+
+    config.server   = s['host']
+    config.port     = s['port']
+    config.password = s['password']
+    config.folders =  s['folders']
     config.deliver = os.path.expanduser(j['deliver'])
 
 

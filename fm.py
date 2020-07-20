@@ -244,21 +244,21 @@ class Conf:
         default = c.get('default')
 
         self.mbox = []
-        for p in c['mbox']:
-            p = os.path.expanduser(p)
 
-            for d in os.listdir(p):
-                dd = os.path.join(p, d)
-                if os.path.isdir(dd):
-                    box = {'path':dd}
-                    box['name'] = d
+        p = os.path.expanduser(c['deliver'])
 
-                    if d == default:
-                        box['default'] = True
+        for d in os.listdir(p):
+            dd = os.path.join(p, d)
+            if os.path.isdir(dd):
+                box = {'path':dd}
+                box['name'] = d
 
-                    self.mbox.append(box)
+                if d == default:
+                    box['default_mbox'] = True
 
-        self.me = c.get('me')
+                self.mbox.append(box)
+
+        self.me = c.get('user')
 
 conf = Conf()
 
