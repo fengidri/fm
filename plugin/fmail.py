@@ -95,10 +95,19 @@ def leaf_handle(leaf, listwin):
     show_header_addr(b, 'To: ', mail.To())
     show_header_addr(b, 'Cc: ', mail.Cc())
 
+    b.append('')
     b.append('=' * 80)
 
     for line in mail.Body().split('\n'):
-        b.append(line)
+        b.append(line.replace('\r', ''))
+
+    atta = mail.Attachs()
+    if atta:
+        b.append('')
+        b.append('--')
+        for a in atta:
+            b.append("[-- %s --] %s" %(a[0], a[1]))
+        b.append('')
 
     b.append('--')
     b.append('=%s' % mail.path)
@@ -126,7 +135,7 @@ def get_child(node, listwin):
     for m in ms:
         if head != m.thread_head:
             if head:
-                l = frainui.Leaf('', None, leaf_handle)
+                l = frainui.Leaf('', None, None)
                 node.append(l)
 
             head = m.thread_head
