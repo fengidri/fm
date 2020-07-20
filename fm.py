@@ -241,6 +241,8 @@ class Conf:
         j = open(path).read()
         c = json.loads(j)
 
+        default = c.get('default')
+
         self.mbox = []
         for p in c['mbox']:
             p = os.path.expanduser(p)
@@ -250,6 +252,9 @@ class Conf:
                 if os.path.isdir(dd):
                     box = {'path':dd}
                     box['name'] = d
+
+                    if d == default:
+                        box['default'] = True
 
                     self.mbox.append(box)
 
