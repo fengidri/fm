@@ -8,6 +8,18 @@ import time
 import json
 from email.header import decode_header
 
+
+def decode(h):
+    h = decode_header(h)[0]
+
+    if h[1]:
+        h = h[0].decode(h[1])
+    else:
+        h = h[0]
+        if isinstance(h, bytes):
+            h = h.decode("utf-8")
+    return h
+
 class EmailAddr(object):
     def __init__(self, addr):
         addr = addr.strip()
@@ -18,7 +30,7 @@ class EmailAddr(object):
             if name[0] == '"':
                 name = name[1:-1]
 
-            self.name = name
+            self.name = decode(name)
             self.addr = addr[i + 1:-1]
             self.server = self.addr.split('@')[1]
         else:
@@ -70,6 +82,10 @@ class Mail(object):
 
         os.rename(self.path, cur)
 
+    def header(self, header):
+        h = self.mail.get(header)
+        return decode(h)
+
 
     def In_reply_to(self):
         if not self.header_in_reply_to:
@@ -87,7 +103,7 @@ class Mail(object):
         return self.mail.get("Date")
 
     def From(self):
-        return self.mail.get("From")
+        return self.mail.get('From')
 
     def To(self):
         return self.mail.get("TO")
@@ -101,17 +117,10 @@ class Mail(object):
         return time.mktime(d)
 
     def Subject(self):
-        subject = self.mail.get('Subject').replace('\n', '').replace('\r', '')
-        subject = decode_header(subject)[0]
+        s = self.header('Subject')
 
-        if subject[1]:
-            subject = subject[0].decode(subject[1])
-        else:
-            subject = subject[0]
-            if isinstance(subject, bytes):
-                subject = subject.decode("utf-8")
+        return s.replace('\n', '').replace('\r', '')
 
-        return subject
 
     def Body(self):
         b = self.mail
