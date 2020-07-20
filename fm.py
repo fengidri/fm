@@ -108,6 +108,9 @@ class Mail(object):
             subject = subject[0].decode(subject[1])
         else:
             subject = subject[0]
+            if isinstance(subject, bytes):
+                subject = subject.decode("utf-8")
+
         return subject
 
     def Body(self):
