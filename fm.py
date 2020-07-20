@@ -57,6 +57,9 @@ class Mail(object):
         self.islast = False
         self.thread_head = None
 
+        self.header_in_reply_to = None
+        self.header_message_id = None
+
     def mark_readed(self):
         name = os.path.basename(self.path)
 
@@ -69,10 +72,16 @@ class Mail(object):
 
 
     def In_reply_to(self):
-        return self.mail.get("In-Reply-To", '').strip()
+        if not self.header_in_reply_to:
+            self.header_in_reply_to = self.mail.get("In-Reply-To", '').strip()
+
+        return self.header_in_reply_to
 
     def Message_id(self):
-        return self.mail.get("Message-Id", '').strip()
+        if not self.header_message_id:
+            self.header_message_id = self.mail.get("Message-Id", '').strip()
+
+        return self.header_message_id
 
     def Date(self):
         return self.mail.get("Date")
@@ -171,6 +180,7 @@ class Mbox(object):
     def __init__(self, dirname):
         self.top = []
         self.mail_list = []
+        self.mail_map = {}
 
         new = os.path.join(dirname, 'new')
         cur = os.path.join(dirname, 'cur')
@@ -179,15 +189,15 @@ class Mbox(object):
         self.load(cur, False)
 
         for m in self.mail_list:
-            if not m.In_reply_to():
+            r = m.In_reply_to()
+            if not r:
                 self.top.append(m)
                 continue
 
-            for mm in self.mail_list:
-                if mm.Message_id() == m.In_reply_to():
-                    mm.sub_thread.append(m)
-                    m.parent = mm
-                    break
+            p = self.mail_map.get(r)
+            if p:
+                p.sub_thread.append(m)
+                m.parent = p
             else:
                 self.top.append(m)
 
@@ -202,6 +212,7 @@ class Mbox(object):
             m.isnew = isnew
 
             self.mail_list.append(m)
+            self.mail_map[m.Message_id()] = m
 
 
     def sort(self):
