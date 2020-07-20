@@ -125,16 +125,28 @@ class Mail(object):
     def Body(self):
         b = self.mail
 
-        if b.is_multipart():
-            for payload in b.get_payload():
-                return payload.get_payload()
-        else:
-            return b.get_payload()
+        tp = ['text/plain', 'text/html']
 
-        #body = self.mail.get_body(('plain',))
-        #if body:
-        #    return body.get_content()
-        #return ''
+        for t in tp:
+            for part in b.walk():
+                if part.get_content_type() == t:
+                    m = part.get_payload(None, True)
+                    if isinstance(m, bytes):
+                        return m.decode('utf-8')
+        return ''
+
+    def Attachs(self):
+        b = self.mail
+
+        tp = ['text/plain', 'text/html']
+        att = []
+
+        for part in b.walk():
+            t = part.get_content_type()
+            if t in tp:
+                continue
+            att.append((t, len(part.get_payload())))
+        return att
 
     def sort(self, index, head):
         self.index = index
@@ -272,15 +284,21 @@ class Conf:
 conf = Conf()
 
 if __name__ == '__main__':
+    import sys
+    if len(sys.argv) > 1:
+        path = sys.argv[1]
+        m = Mail(path)
+        print(m.Body())
 
-    mbox = Mbox(conf.mbox[1]['path'])
-    head = None
-    for m in mbox.output():
-        if m.thread_head != head:
-            print('')
-            head = m.thread_head
+    else:
+        mbox = Mbox(conf.mbox[1]['path'])
+        head = None
+        for m in mbox.output():
+            if m.thread_head != head:
+                print('')
+                head = m.thread_head
 
-        print(m.str())
+            print(m.str())
 
 
 
