@@ -1,4 +1,8 @@
-runtime syntax/mail.vim syntax/diff.vim
+runtime syntax/mail.vim
+
+unlet b:current_syntax
+
+runtime syntax/diff.vim
 setlocal buftype=nofile
 setlocal noswapfile
 
