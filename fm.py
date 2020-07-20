@@ -243,7 +243,15 @@ class Conf:
 
         self.mbox = []
         for p in c['mbox']:
-            self.mbox.append(os.path.expanduser(p))
+            p = os.path.expanduser(p)
+
+            for d in os.listdir(p):
+                dd = os.path.join(p, d)
+                if os.path.isdir(dd):
+                    box = {'path':dd}
+                    box['name'] = d
+
+                    self.mbox.append(box)
 
         self.me = c.get('me')
 
@@ -251,7 +259,7 @@ conf = Conf()
 
 if __name__ == '__main__':
 
-    mbox = Mbox(conf.mbox[0])
+    mbox = Mbox(conf.mbox[1]['path'])
     head = None
     for m in mbox.output():
         if m.thread_head != head:
