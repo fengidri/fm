@@ -113,8 +113,8 @@ class Mail(object):
 
     def Date_ts(self):
         d = self.mail.get("Date")
-        d = email.utils.parsedate(d)
-        return time.mktime(d)
+        d = email.utils.parsedate_tz(d)
+        return email.utils.mktime_tz(d)
 
     def Subject(self):
         s = self.header('Subject')
