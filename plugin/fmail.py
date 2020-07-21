@@ -15,6 +15,9 @@ class g:
     default = None
     last_subject = None
     listwin = None
+    header_raw = True
+    pager_buf = None
+    pager_mail = None
 
 def need_hide_subject(m):
     m.hide_subject = False
@@ -77,23 +80,35 @@ def show_header_addr(b, n, h):
     for tt in t[1:]:
         b.append('   ' + tt)
 
-def leaf_handle(leaf, listwin):
-    mail = leaf.ctx
 
+
+def _mail_show(mail):
     vim.command("set filetype=fmpager")
+    vim.command("setlocal modifiable")
 
     b = vim.current.buffer
     del b[:]
 
-    s = 'Subject: ' + mail.Subject()
+    if g.header_raw:
+        for k,v in mail.mail.items():
+            v = v.replace('\r', '')
+            v = v.split('\n')
 
-    b[0] = s
+            s = '%s: %s' %(k, v[0])
+            b.append(s)
+            for t in v[1:]:
+                b.append(t)
 
-    b.append('Date: ' + mail.Date())
-    b.append('From: ' + mail.From())
+    else:
+        s = 'Subject: ' + mail.Subject()
 
-    show_header_addr(b, 'To: ', mail.To())
-    show_header_addr(b, 'Cc: ', mail.Cc())
+        b[0] = s
+
+        b.append('Date: ' + mail.Date())
+        b.append('From: ' + mail.From())
+
+        show_header_addr(b, 'To: ', mail.To())
+        show_header_addr(b, 'Cc: ', mail.Cc())
 
     b.append('')
     b.append('=' * 80)
@@ -121,11 +136,32 @@ def leaf_handle(leaf, listwin):
 
         leaf.update(display(mail))
 
-#        g.listwin.refresh()
+    b.append('--')
+    b.append('=%s' % mail.path)
+
+    vim.command("setlocal nomodifiable")
 
 
 
-def get_child(node, listwin):
+def mail_show(leaf, listwin):
+    mail = leaf.ctx
+    _mail_show(mail)
+    g.pager_buf = vim.current.buffer
+    g.pager_mail = mail
+
+
+def pager_refresh():
+    if g.pager_buf != vim.current.buffer:
+        return
+
+    _mail_show(g.pager_mail)
+
+
+
+
+
+
+def show_index(node, listwin):
     mdir = node.ctx
     mbox = fm.Mbox(mdir['path'])
 
@@ -146,7 +182,7 @@ def get_child(node, listwin):
 
         name = os.path.basename(m.path)
 
-        l = frainui.Leaf(name, m, leaf_handle, display = s)
+        l = frainui.Leaf(name, m, mail_show, display = s)
         node.append(l)
 
 
@@ -154,7 +190,7 @@ def list_root(node, listwin):
 
     for mdir in fm.conf.mbox:
 
-        r = frainui.Node(mdir['name'], mdir, get_child)
+        r = frainui.Node(mdir['name'], mdir, show_index)
         node.append(r)
 
         if mdir.get('default'):
@@ -203,3 +239,7 @@ def MailSaveId():
     pyvim.echo('save message-id to %s' % f)
 
 
+@pyvim.cmd()
+def MailHeader():
+    g.header_raw = not g.header_raw
+    pager_refresh()
