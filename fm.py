@@ -8,6 +8,18 @@ import time
 import json
 from email.header import decode_header
 
+
+def decode(h):
+    h = decode_header(h)[0]
+
+    if h[1]:
+        h = h[0].decode(h[1])
+    else:
+        h = h[0]
+        if isinstance(h, bytes):
+            h = h.decode("utf-8")
+    return h
+
 class EmailAddr(object):
     def __init__(self, addr):
         addr = addr.strip()
@@ -18,7 +30,7 @@ class EmailAddr(object):
             if name[0] == '"':
                 name = name[1:-1]
 
-            self.name = name
+            self.name = decode(name)
             self.addr = addr[i + 1:-1]
             self.server = self.addr.split('@')[1]
         else:
@@ -39,7 +51,16 @@ class Mail(object):
         self.parent = None
         self.sub_thread = []
 
-        c = open(path).read()
+        for e in ['UTF-8', 'Latin-1']:
+            try:
+                c = open(path, encoding = e).read()
+                break
+            except UnicodeDecodeError:
+                pass
+        else:
+            raise 'UnicodeDecodeError: %s' % path
+
+
 
         self.mail = email.message_from_string(c)
         self.isnew = False
@@ -48,34 +69,99 @@ class Mail(object):
         self.islast = False
         self.thread_head = None
 
+        self.header_in_reply_to = None
+        self.header_message_id = None
+
+        self.last_recv_ts = None
+
+    def mark_readed(self):
+        name = os.path.basename(self.path)
+
+        cur = os.path.dirname(self.path)
+        cur = os.path.dirname(cur)
+        cur = os.path.join(cur, 'cur')
+        cur = os.path.join(cur, name)
+
+        os.rename(self.path, cur)
+
+    def header(self, header):
+        h = self.mail.get(header)
+        return decode(h)
 
 
     def In_reply_to(self):
-        return self.mail.get("In-Reply-To", '').strip()
+        if not self.header_in_reply_to:
+            self.header_in_reply_to = self.mail.get("In-Reply-To", '').strip()
+
+        return self.header_in_reply_to
 
     def Message_id(self):
-        return self.mail.get("Message-Id", '').strip()
+        if not self.header_message_id:
+            self.header_message_id = self.mail.get("Message-Id", '').strip()
 
-    def date(self):
+        return self.header_message_id
+
+    def Date(self):
         return self.mail.get("Date")
 
     def From(self):
-        return self.mail.get("From")
+        return self.mail.get('From')
+
+    def To(self):
+        return self.mail.get("TO")
+
+    def Cc(self):
+        return self.mail.get("Cc")
 
     def Date_ts(self):
         d = self.mail.get("Date")
-        d = email.utils.parsedate(d)
-        return time.mktime(d)
+        d = email.utils.parsedate_tz(d)
+        return email.utils.mktime_tz(d)
 
     def Subject(self):
-        subject = self.mail.get('Subject').replace('\n', ' ').replace('\r', '')
-        subject = decode_header(subject)[0]
+        s = self.header('Subject')
 
-        if subject[1]:
-            subject = subject[0].decode(subject[1])
-        else:
-            subject = subject[0]
-        return subject
+        return s.replace('\n', '').replace('\r', '')
+
+
+    def Body(self):
+        b = self.mail
+
+        tp = ['text/plain', 'text/html']
+
+        for t in tp:
+            for part in b.walk():
+                if part.get_content_type() == t:
+                    m = part.get_payload(None, True)
+                    if isinstance(m, bytes):
+                        return m.decode('utf-8')
+        return ''
+
+    def Attachs(self):
+        b = self.mail
+
+        tp = ['text/plain', 'text/html']
+        att = []
+
+        for part in b.walk():
+            t = part.get_content_type()
+            if t in tp:
+                continue
+            att.append((t, len(part.get_payload())))
+        return att
+
+    def append(self, m):
+        self.sub_thread.append(m)
+        m.parent = self
+
+        p = self
+
+        while p.parent:
+            p = p.parent
+
+        ts = m.Date_ts()
+        if None == p.last_recv_ts or ts > p.last_recv_ts:
+            p.last_recv_ts = ts
 
     def sort(self, index, head):
         self.index = index
@@ -99,14 +185,25 @@ class Mail(object):
         return '%s%s' % (self.thread_prefix(), subject)
 
     def thread_prefix(self):
-        if self.index > 0:
-            if self.isfirst:
-                prefix = '`->'
-            else:
-                prefix = '|->'
+        if self.index == 0:
+            return ''
+
+        prefix = '->'
+
+        #if self.index > 0:
+        #    if self.isfirst:
+        #    else:
+        #        prefix = '|->'
+        #else:
+        #    prefix = ''
+        p = self
+        while p.parent.parent:
+            p = p.parent
+
+        if p.islast:
+            return ' %s|%s' % ('  ' * (self.index - 1),  prefix)
         else:
-            prefix = ''
-        return (' ' * self.index) + prefix
+            return ' |%s%s' % ('  ' * (self.index - 1),  prefix)
 
 
     def output(self, o):
@@ -122,6 +219,7 @@ class Mbox(object):
     def __init__(self, dirname):
         self.top = []
         self.mail_list = []
+        self.mail_map = {}
 
         new = os.path.join(dirname, 'new')
         cur = os.path.join(dirname, 'cur')
@@ -130,14 +228,14 @@ class Mbox(object):
         self.load(cur, False)
 
         for m in self.mail_list:
-            if not m.In_reply_to():
+            r = m.In_reply_to()
+            if not r:
                 self.top.append(m)
                 continue
 
-            for mm in self.mail_list:
-                if mm.Message_id() == m.In_reply_to():
-                    mm.sub_thread.append(m)
-                    break
+            p = self.mail_map.get(r)
+            if p:
+                p.append(m)
             else:
                 self.top.append(m)
 
@@ -152,10 +250,11 @@ class Mbox(object):
             m.isnew = isnew
 
             self.mail_list.append(m)
+            self.mail_map[m.Message_id()] = m
 
 
     def sort(self):
-        self.top.sort(key = lambda x: x.Date_ts())
+        self.top.sort(key = lambda x: x.last_recv_ts or x.Date_ts())
 
         for m in self.top:
             m.sort(0, m)
@@ -177,24 +276,44 @@ class Conf:
         j = open(path).read()
         c = json.loads(j)
 
-        self.mbox = []
-        for p in c['mbox']:
-            self.mbox.append(os.path.expanduser(p))
+        default = c.get('default')
 
-        self.me = c.get('me')
+        self.mbox = []
+
+        p = os.path.expanduser(c['deliver'])
+
+        for d in os.listdir(p):
+            dd = os.path.join(p, d)
+            if os.path.isdir(dd):
+                box = {'path':dd}
+                box['name'] = d
+
+                if d == default:
+                    box['default_mbox'] = True
+
+                self.mbox.append(box)
+
+        self.me = c.get('user')
+        self.name = c.get('name', self.me.split('@')[0])
 
 conf = Conf()
 
 if __name__ == '__main__':
+    import sys
+    if len(sys.argv) > 1:
+        path = sys.argv[1]
+        m = Mail(path)
+        print(m.Body())
 
-    mbox = Mbox(conf.mbox[0])
-    head = None
-    for m in mbox.output():
-        if m.thread_head != head:
-            print('')
-            head = m.thread_head
+    else:
+        mbox = Mbox(conf.mbox[1]['path'])
+        head = None
+        for m in mbox.output():
+            if m.thread_head != head:
+                print('')
+                head = m.thread_head
 
-        print(m.str())
+            print(m.str())
 
 
 
