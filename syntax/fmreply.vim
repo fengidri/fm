@@ -1,0 +1,2 @@
+runtime syntax/fmpager.vim
+
