@@ -72,6 +72,8 @@ class Mail(object):
         self.header_in_reply_to = None
         self.header_message_id = None
 
+        self.last_recv_ts = None
+
     def mark_readed(self):
         name = os.path.basename(self.path)
 
@@ -148,6 +150,19 @@ class Mail(object):
             att.append((t, len(part.get_payload())))
         return att
 
+    def append(self, m):
+        self.sub_thread.append(m)
+        m.parent = self
+
+        p = self
+
+        while p.parent:
+            p = p.parent
+
+        ts = m.Date_ts()
+        if None == p.last_recv_ts or ts > p.last_recv_ts:
+            p.last_recv_ts = ts
+
     def sort(self, index, head):
         self.index = index
 
@@ -220,8 +235,7 @@ class Mbox(object):
 
             p = self.mail_map.get(r)
             if p:
-                p.sub_thread.append(m)
-                m.parent = p
+                p.append(m)
             else:
                 self.top.append(m)
 
@@ -240,7 +254,7 @@ class Mbox(object):
 
 
     def sort(self):
-        self.top.sort(key = lambda x: x.Date_ts())
+        self.top.sort(key = lambda x: x.last_recv_ts or x.Date_ts())
 
         for m in self.top:
             m.sort(0, m)
