@@ -7,6 +7,7 @@ import datetime
 import time
 import json
 from email.header import decode_header
+import subprocess
 
 
 def decode(h):
@@ -30,17 +31,21 @@ class EmailAddr(object):
             if name[0] == '"':
                 name = name[1:-1]
 
-            self.name = decode(name)
+            self.alias = decode(name)
             self.addr = addr[i + 1:-1]
-            self.server = self.addr.split('@')[1]
+            self.name, self.server = self.addr.split('@')
         else:
+            self.alias = None
             self.addr = addr
             self.name, self.server = self.addr.split('@')
 
         if self.addr == conf.me:
             self.short = ''
         else:
-            self.short = self.name
+            if self.alias:
+                self.short = self.alias
+            else:
+                self.short = self.name
 
 
 
@@ -72,7 +77,6 @@ class Mail(object):
         self.header_in_reply_to = None
         self.header_message_id = None
 
-        self.last_recv_ts = None
 
     def mark_readed(self):
         name = os.path.basename(self.path)
@@ -83,6 +87,7 @@ class Mail(object):
         cur = os.path.join(cur, name)
 
         os.rename(self.path, cur)
+        self.path = cur
 
     def header(self, header):
         h = self.mail.get(header)
@@ -102,7 +107,10 @@ class Mail(object):
         return self.header_message_id
 
     def Date(self):
-        return self.mail.get("Date")
+        d= self.mail.get("Date")
+        if not d:
+            d = 'Mon, 01 Jul 1979 00:00:00 +0800'
+        return d
 
     def From(self):
         return self.mail.get('From')
@@ -115,6 +123,8 @@ class Mail(object):
 
     def Date_ts(self):
         d = self.mail.get("Date")
+        if not d:
+            d = 'Mon, 27 Jul 2020 10:32:31 +0800'
         d = email.utils.parsedate_tz(d)
         return email.utils.mktime_tz(d)
 
@@ -132,9 +142,11 @@ class Mail(object):
         for t in tp:
             for part in b.walk():
                 if part.get_content_type() == t:
-                    m = part.get_payload(None, True)
+                    m = part.get_payload(None, False)
                     if isinstance(m, bytes):
-                        return m.decode('utf-8')
+                        return m.decode('UTF-8')
+                    else:
+                        return m
         return ''
 
     def Attachs(self):
@@ -154,14 +166,22 @@ class Mail(object):
         self.sub_thread.append(m)
         m.parent = self
 
-        p = self
+    def last_recv_ts(self):
 
-        while p.parent:
-            p = p.parent
+        ts = self.Date_ts()
 
-        ts = m.Date_ts()
-        if None == p.last_recv_ts or ts > p.last_recv_ts:
-            p.last_recv_ts = ts
+        for m in self.sub_thread:
+            t = m.Date_ts()
+            if t > ts:
+                ts = t
+        return ts
+
+    def num(self):
+        s = 1
+        for m in self.sub_thread:
+            s += m.num()
+
+        return s
 
     def sort(self, index, head):
         self.index = index
@@ -254,7 +274,7 @@ class Mbox(object):
 
 
     def sort(self):
-        self.top.sort(key = lambda x: x.last_recv_ts or x.Date_ts())
+        self.top.sort(key = lambda x: x.last_recv_ts())
 
         for m in self.top:
             m.sort(0, m)
@@ -268,6 +288,27 @@ class Mbox(object):
         for m in top:
             m.output(o)
         return o
+
+def sendmail(path):
+    c = open(path).read()
+    p = subprocess.Popen(['msmtp', '-t'],
+            stdin = subprocess.PIPE,
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE)
+
+    stdout, stderr = p.communicate(c)
+
+    code = p.returncode
+
+    if 0 == code:
+        name = os.path.basename(name)
+        sent = os.path.join('~/.fm.d/sent', name)
+        open(sent, 'w').write(c)
+
+        os.remove(path)
+
+    return code, stdout, stderr
+
 
 class Conf:
     def __init__(self):
