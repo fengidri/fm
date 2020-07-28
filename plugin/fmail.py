@@ -351,6 +351,23 @@ def MailReply():
     for line in lines:
         vim.current.buffer.append('> ' + line.replace('\r', ''))
 
+
+@pyvim.cmd()
+def MailDel():
+    node = g.listwin.getnode()
+    if not node:
+        return
+
+    if not node.ctx:
+        return
+
+    if not isinstance(node, frainui.Leaf):
+        return
+
+    mail = node.ctx
+    mail.delete()
+    node.update(' ')
+
 @pyvim.cmd()
 def MailSend():
     path = vim.current.buffer.name
