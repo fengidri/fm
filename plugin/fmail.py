@@ -60,9 +60,9 @@ def index_line(m):
     f = fm.EmailAddr(f)
     f = f.short
     if f != '':
-        f = 'From: %s' % f
+        f = '%s' % f
     else:
-        f = 'From: me'
+        f = 'me'
 
     f = f.ljust(20)[0:20]
 
@@ -154,13 +154,6 @@ def show_header_align(buf, *c):
                     a.addr)
             buf.append(line)
 
-
-
-
-
-
-
-
 def _mail_show(mail):
     vim.command("set filetype=fmpager")
     vim.command("setlocal modifiable")
@@ -205,7 +198,7 @@ def _mail_show(mail):
             b.append("[-- %s --] %s" %(a[0], a[1]))
         b.append('')
 
-    b.append('--')
+    b.append('=' * 80)
     b.append('fm info:')
     b.append('=%s' % mail.path)
 
