@@ -8,6 +8,7 @@ import frainui
 from pyvim import log as logging
 import time
 import email
+import email.utils
 import os
 
 import subprocess
@@ -60,10 +61,12 @@ def index_line(m):
     f = f.short
     if f != '':
         f = 'From: %s' % f
+    else:
+        f = 'From: me'
 
     f = f.ljust(20)[0:20]
 
-    fmt = '{stat} {subject} \\blue;{_from}\\end; {date}'
+    fmt = '{stat} {subject} {_from} {date}'
     return fmt.format(stat = stat,
                    subject = subject,
                    _from = f,
@@ -166,7 +169,7 @@ def _mail_show(mail):
     del b[:]
 
     if g.header_raw:
-        for k,v in mail.mail.items():
+        for k,v in mail.get_mail().items():
             v = v.replace('\r', '')
             v = v.split('\n')
 
@@ -215,8 +218,6 @@ def mail_show(leaf, listwin):
 
     if mail.isnew:
         mail.mark_readed()
-
-        mail.isnew = False
 
         leaf.update(index_line(mail))
 
@@ -277,6 +278,8 @@ def list_root(node, listwin):
 
 @pyvim.cmd()
 def Mail():
+    fm.init()
+
     b = vim.current.buffer
     if len(b) != 1:
         return
@@ -315,19 +318,34 @@ def MailReply():
         Subject = 'Re: ' + Subject
 
     vim.current.buffer[0] = 'Subject: ' + Subject
+    vim.current.buffer.append('Date: ' + email.utils.formatdate(localtime=True))
 
     vim.current.buffer.append('From: %s <%s>' % (fm.conf.name, fm.conf.me))
 
     if m.From():
         vim.current.buffer.append('To: ' + m.From().replace('\n', ' '))
     if m.Cc():
-        vim.current.buffer.append('Cc: ' + m.Cc().replace('\n', ' '))
+        c = m.Cc().split(',')
+        c = [x.strip() for x in c]
+
+        to = m.To().split(',')
+        for t in to:
+            t = t.strip()
+            a = fm.EmailAddr(t)
+            if a.addr != fm.conf.me:
+                c.append(t)
+
+        c = ', '.join(c)
+        vim.current.buffer.append('Cc: ' + c)
 
     if m.Message_id():
         vim.current.buffer.append('In-Reply-To: ' + m.Message_id())
 
     vim.current.buffer.append('')
 
+    b = vim.current.buffer
+
+    b.append('On %s, %s wrote:' % (m.Date(), m.From()))
 
     lines = m.Body().split('\n')
     for line in lines:
@@ -337,11 +355,10 @@ def MailReply():
 def MailSend():
     path = vim.current.buffer.name
 
-    vim.command('set buftype=nofile')
-
     code, out, err = fm.sendmail(path)
 
     if 0 == code:
+        vim.command('set buftype=nofile')
         pyvim.echo('send success')
         return
 
