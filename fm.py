@@ -153,7 +153,7 @@ class Db(object):
         return self._exec(cmd)
 
     def find_by_msgid(self, msgid):
-        cmd = 'select * from FMIndex where msgid="%s"' % msgid
+        cmd = 'select *,rowid from FMIndex where msgid="%s"' % msgid
         self._exec(cmd)
         t = self.c.fetchone()
         if not t:
@@ -161,12 +161,12 @@ class Db(object):
         return t
 
     def find_by_reply(self, rid):
-        cmd = 'select * from FMIndex where in_reply_to="%s"' % rid
+        cmd = 'select *,rowid from FMIndex where in_reply_to="%s"' % rid
         self._exec(cmd)
         return self.c.fetchall()
 
     def getall_mbox(self, mbox):
-        cmd = 'select * from FMIndex where mbox="%s"' % mbox
+        cmd = 'select *,rowid from FMIndex where mbox="%s"' % mbox
         self._exec(cmd)
         return self.c.fetchall()
 
@@ -178,6 +178,12 @@ class Db(object):
 
     def sub_n_incr(self, msgid):
         cmd = 'update FMIndex set sub_n=sub_n + 1 where msgid="%s"' %  msgid
+        self._exec(cmd)
+        self.conn.commit()
+        return self.c.rowcount
+
+    def del_mail(self, mail):
+        cmd = "delete from FMIndex where rowid=%s" % mail.rowid
         self._exec(cmd)
         self.conn.commit()
         return self.c.rowcount
@@ -420,6 +426,7 @@ class MailDb(M):
         self.attach_n    = record[10]
         self.size        = record[11]
         self.path        = record[12]
+        self.rowid       = record[13]
 
         if self.status == 0:
             self.isnew = True
@@ -448,6 +455,9 @@ class MailDb(M):
     def Date_ts(self):
         d = email.utils.parsedate_tz(self.Date())
         return email.utils.mktime_tz(d)
+
+    def delete(self):
+        return g.db.del_mail(self)
 
 
 class Mbox(object):
