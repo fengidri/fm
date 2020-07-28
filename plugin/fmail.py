@@ -20,6 +20,7 @@ class g:
     header_raw = False
     pager_buf = None
     pager_mail = None
+    mbox = None
 
 def need_hide_subject(m):
     m.hide_subject = False
@@ -228,14 +229,8 @@ def pager_refresh():
 
 
 
-
-
-
-def fm_list_mail(node, listwin):
-    mdir = node.ctx
-    mbox = fm.Mbox(mdir['path'])
-
-    ms = mbox.output(reverse=True)
+def fm_list_show(node, listwin):
+    ms = g.mbox.output(reverse=True)
 
     head = None
     for m in ms:
@@ -252,21 +247,34 @@ def fm_list_mail(node, listwin):
 
         name = os.path.basename(m.path)
 
-        l = frainui.Leaf(name, m, mail_show, display = s)
+        l = frainui.Leaf(name, m, mail_show, display = s, new_win=True)
         node.append(l)
+
+
+
+def fm_mbox_handle(node, listwin):
+    mdir = node.ctx
+    mbox = fm.Mbox(mdir['path'])
+
+    g.mbox = mbox
+
+    g.ui_list.title = "MBox: %s thread: %s" % (mdir['name'], len(mbox.top))
+
+    g.ui_list.show()
+    g.ui_list.refresh()
+
+
 
 
 def fm_mbox_root(node, listwin):
 
     for mdir in fm.conf.mbox:
 
-        r = frainui.Leaf(mdir['name'], mdir, fm_list_mail)
+        r = frainui.Leaf(mdir['name'], mdir, fm_mbox_handle)
         node.append(r)
 
         if mdir.get('default'):
             g.default = r
-
-
 
 
 @pyvim.cmd()
@@ -280,10 +288,10 @@ def Mail():
     if not fm.conf.mbox:
         return
 
-    ui_mbox = LIST("FM Mbox", fm_mbox_root)
+    ui_mbox = LIST("FM Mbox", fm_mbox_root, title = 'FM Mbox')
 
-    ui_list = LIST("FM List", list_root, ft='fmindex',
-            use_current_buffer = True)
+    ui_list = LIST("FM List", fm_list_show, ft='fmindex',
+            use_current_buffer = True, title = 'FM List')
 
     ui_mbox.show()
     ui_mbox.refresh()
@@ -291,11 +299,11 @@ def Mail():
     #ui_list.show()
     #ui_list.refresh()
 
-    if g.default:
-        g.default.node_open()
-
     g.ui_list = ui_list
     g.ui_mbox = ui_mbox
+
+    if g.default:
+        g.default.node_open()
 
 @pyvim.cmd()
 def MailReply():
