@@ -231,7 +231,7 @@ def pager_refresh():
 
 
 
-def show_index(node, listwin):
+def fm_list_mail(node, listwin):
     mdir = node.ctx
     mbox = fm.Mbox(mdir['path'])
 
@@ -256,11 +256,11 @@ def show_index(node, listwin):
         node.append(l)
 
 
-def list_root(node, listwin):
+def fm_mbox_root(node, listwin):
 
     for mdir in fm.conf.mbox:
 
-        r = frainui.Node(mdir['name'], mdir, show_index)
+        r = frainui.Leaf(mdir['name'], mdir, fm_list_mail)
         node.append(r)
 
         if mdir.get('default'):
@@ -280,15 +280,22 @@ def Mail():
     if not fm.conf.mbox:
         return
 
-    listwin = LIST("frain", list_root, ft='fmindex',
+    ui_mbox = LIST("FM Mbox", fm_mbox_root)
+
+    ui_list = LIST("FM List", list_root, ft='fmindex',
             use_current_buffer = True)
 
-    listwin.show()
-    listwin.refresh()
+    ui_mbox.show()
+    ui_mbox.refresh()
+
+    #ui_list.show()
+    #ui_list.refresh()
+
     if g.default:
         g.default.node_open()
 
-    g.listwin = listwin
+    g.ui_list = ui_list
+    g.ui_mbox = ui_mbox
 
 @pyvim.cmd()
 def MailReply():
@@ -347,7 +354,7 @@ def MailReply():
 
 @pyvim.cmd()
 def MailDel():
-    node = g.listwin.getnode()
+    node = g.ui_list.getnode()
     if not node:
         return
 
