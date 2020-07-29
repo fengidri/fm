@@ -10,6 +10,7 @@ import json
 from email.header import decode_header
 import subprocess
 import sqlite3
+import functools
 
 class g:
     db = None
@@ -315,7 +316,20 @@ class M(object):
         if not self.sub_thread:
             return
 
-        self.sub_thread.sort(key = lambda x: x.Date_ts())
+        def cmpfun(a, b):
+            a_ts = a.Date_ts()
+            b_ts = b.Date_ts()
+
+            d = a_ts - b_ts
+            if d > -2 and d < 2:
+                if a.Subject() > b.Subject():
+                    return 1
+                else:
+                    return -1
+            return d
+
+
+        self.sub_thread.sort(key = functools.cmp_to_key(cmpfun))
         self.sub_thread[0].isfirst = True
         self.sub_thread[-1].islast = True
 
@@ -565,7 +579,7 @@ class Conf:
                 box['name'] = d
 
                 if d == default:
-                    box['default_mbox'] = True
+                    box['default'] = True
 
                 self.mbox.append(box)
 
