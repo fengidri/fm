@@ -85,75 +85,38 @@ def show_header_addr(b, n, h):
     for tt in t[1:]:
         b.append('   ' + tt)
 
-def show_header_align(buf, *c):
-    fields = []
-    addrs = []
+def align_email_addr(buf, *c):
+    lines = []
 
-    i = -1;
-    while True:
-        i = i + 1
-        if i >= len(c) / 2:
-            break
-        if not c[i * 2 + 1]:
-            continue
+    for i in range(0, len(c), 2):
+        field = c[i]
+        header = c[i + 1]
 
-        fields.append(c[i * 2])
-        addrs.append(c[i * 2 + 1])
+        h = header.replace('\n', '').replace('\r', '').split(',')
 
-    name_len = 0
-    alias_len = 0
-
-    for ii, h in enumerate(addrs):
-        h = h.replace('\n', '').replace('\r', '').split(',')
-        for i, a in enumerate(h):
+        for a in h:
             a = fm.EmailAddr(a)
-            h[i] = a
 
-            if a.alias and len(a.alias) > alias_len:
-                alias_len = len(a.alias)
+            show = a.alias
+            if not show:
+                show = a.name
 
-            if len(a.name) > name_len:
-                name_len = len(a.name)
+            lines.append((field, show, a.server))
+            field = ''
 
-        addrs[ii] = h
+    lens = [0, 0, 0]
 
-    field_len = max([len(x) for x in fields])
+    for line in lines:
+        for i, l in enumerate(lens):
+            t = len(line[i])
+            if l < t:
+                lens[i] = t
 
-    for i, f in enumerate(fields):
-        h = addrs[i]
+    fmt = '%%%ds %%-%ds @%%-%ds' % tuple(lens)
 
-        a = h[0]
-
-        if a.name:
-            _n = name_len - len(a.name)
-        else:
-            _n = name_len
-
-        alias = a.alias
-        if not alias:
-            alias = ''
-
-        line = '%s %s %s%s' % (f.ljust(field_len),
-                alias.ljust(alias_len),
-                ' ' * _n,
-                a.addr)
-
+    for line in lines:
+        line = fmt % line
         buf.append(line)
-        for a in h[1:]:
-            alias = a.alias
-            if not alias:
-                alias = ''
-
-            if a.name:
-                _n = name_len - len(a.name)
-            else:
-                _n = name_len
-
-            line = '%s %s %s%s' % (' ' * field_len,
-                    alias.ljust(alias_len),
-                    ' ' * _n,
-                    a.addr)
-            buf.append(line)
 
 def _mail_show(mail):
     vim.command("set filetype=fmpager")
@@ -179,7 +142,7 @@ def _mail_show(mail):
 
         b.append('Date: ' + mail.Date())
 
-        show_header_align(b,
+        align_email_addr(b,
                 'From:', mail.From(),
                 'To:',   mail.To(),
                 'Cc:',   mail.Cc())
@@ -206,8 +169,7 @@ def _mail_show(mail):
     vim.command("setlocal nomodifiable")
 
 
-
-def mail_show(leaf, listwin):
+def fm_mail_handle(leaf, listwin):
     mail = leaf.ctx
 
     if mail.isnew:
@@ -221,24 +183,22 @@ def mail_show(leaf, listwin):
     g.pager_mail = mail
 
 
-def pager_refresh():
-    if g.pager_buf != vim.current.buffer:
-        return
-
-    _mail_show(g.pager_mail)
 
 
-
-def fm_list_show(node, listwin):
+def fm_mail_list(node, listwin):
     ms = g.mbox.output(reverse=True)
 
     head = None
-    for m in ms:
-        if head != m.thread_head:
-            if (head and head.num() > 1) or m.thread_head.num() > 1:
-                l = frainui.Leaf('', None, None)
-                node.append(l)
+    node.append(frainui.Leaf('', None, None))
 
+    for m in ms:
+        if head:
+            if head != m.thread_head:
+                if head.num() > 1 or m.thread_head.num() > 1:
+                    node.append(frainui.Leaf('', None, None))
+
+                head = m.thread_head
+        else:
             head = m.thread_head
 
         need_hide_subject(m)
@@ -247,7 +207,7 @@ def fm_list_show(node, listwin):
 
         name = os.path.basename(m.path)
 
-        l = frainui.Leaf(name, m, mail_show, display = s, new_win=True)
+        l = frainui.Leaf(name, m, fm_mail_handle, display = s, new_win=True)
         node.append(l)
 
 
@@ -266,7 +226,8 @@ def fm_mbox_handle(node, listwin):
 
 
 
-def fm_mbox_root(node, listwin):
+def fm_mbox_list(node, listwin):
+    node.append(frainui.Leaf('', None, None))
 
     for mdir in fm.conf.mbox:
 
@@ -288,16 +249,13 @@ def Mail():
     if not fm.conf.mbox:
         return
 
-    ui_mbox = LIST("FM Mbox", fm_mbox_root, title = 'FM Mbox')
+    ui_mbox = LIST("FM Mbox", fm_mbox_list, title = fm.conf.me)
 
-    ui_list = LIST("FM List", fm_list_show, ft='fmindex',
+    ui_list = LIST("FM List", fm_mail_list, ft='fmindex',
             use_current_buffer = True, title = 'FM List')
 
     ui_mbox.show()
     ui_mbox.refresh()
-
-    #ui_list.show()
-    #ui_list.refresh()
 
     g.ui_list = ui_list
     g.ui_mbox = ui_mbox
@@ -414,4 +372,11 @@ def MailSaveId():
 @pyvim.cmd()
 def MailHeader():
     g.header_raw = not g.header_raw
-    pager_refresh()
+
+    if g.pager_buf != vim.current.buffer:
+        return
+
+    _mail_show(g.pager_mail)
+
+
+
