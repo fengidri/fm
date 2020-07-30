@@ -12,15 +12,17 @@ import email.utils
 import os
 
 import subprocess
+import datetime
 
 class g:
     default = None
     last_subject = None
-    listwin = None
     header_raw = False
     pager_buf = None
     pager_mail = None
     mbox = None
+    config_short_time = True
+    config_relative_time = True
 
 def need_hide_subject(m):
     m.hide_subject = False
@@ -46,7 +48,39 @@ def index_line(m):
         stat = ' '
 
     date = m.Date_ts()
-    date = time.strftime("%m-%d %H:%M", time.localtime(date))
+    if g.config_relative_time:
+        if not m.parent:
+            date = time.strftime("%m-%d %H:%M", time.localtime(date))
+        else:
+            f = time.localtime(m.thread_head.Date_ts())
+            d = time.localtime(date)
+            hm = time.strftime("%H:%M", d)
+
+            f1 = datetime.datetime(f.tm_year, f.tm_mon, f.tm_mday)
+            d1 = datetime.datetime(d.tm_year, d.tm_mon, d.tm_mday)
+
+            day = (d1 - f1).days
+
+            if day:
+                date = '%dday %s' % (day, hm)
+            else:
+                date = hm
+
+            date = date.rjust(len('01-01 00:00'))
+
+
+
+    elif g.config_short_time:
+        now = time.time()
+        s = time.strftime("%m-%d %H:%M", time.localtime(date))
+        d = time.strftime('%m-%d ', time.localtime())
+        if s.startswith(d):
+            n = len(d)
+            date = ' ' * n + s[n:]
+        else:
+            date = s
+    else:
+        date = time.strftime("%m-%d %H:%M", time.localtime(date))
 
 
     if m.hide_subject:
@@ -112,7 +146,7 @@ def align_email_addr(buf, *c):
             if l < t:
                 lens[i] = t
 
-    fmt = '%%%ds %%-%ds @%%-%ds' % tuple(lens)
+    fmt = '%%-%ds %%-%ds @%%-%ds' % tuple(lens)
 
     for line in lines:
         line = fmt % line
@@ -152,7 +186,30 @@ def _mail_show(mail):
     b.append('=' * 80)
 
     for line in mail.Body().split('\n'):
-        b.append(line.replace('\r', ''))
+        line = line.replace('\r', '')
+        level = 0
+
+        pos = 0
+        prefix = []
+        for i, c in enumerate(line):
+            if c == '>':
+                prefix.append('> ')
+                level += 1
+                pos = i + 1
+                continue
+
+            if c == ' ':
+                pos = i + 1
+                continue
+
+            break
+
+
+        line = line[pos:]
+
+        line = ''.join(prefix) + line
+
+        b.append(line)
 
     atta = mail.Attachs()
     if atta:

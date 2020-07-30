@@ -1,9 +1,55 @@
-runtime syntax/mail.vim
+""runtime syntax/mail.vim
 
-unlet b:current_syntax
+""unlet b:current_syntax
 
-runtime syntax/diff.vim
+""runtime syntax/diff.vim
 
 
 syn match Identifier  'Reviewed-by'
 syn match Identifier  'Acked-by'
+syn match Identifier  'Signed-off-by'
+
+syn match MailLine1   '^>'
+syn match MailLine2   '^> >'lc=2
+syn match MailLine3   '^> > >'lc=4
+syn match MailLine4   '^> > > >'lc=6
+
+
+hi MailLine1  guifg=blue    guibg=blue
+hi MailLine2  guifg=#DC5B00 guibg=#DC5B00
+hi MailLine3  guifg=#1e7079 guibg=#1e7079
+hi MailLine4  guifg=red     guibg=red
+
+
+
+syn match Title  '\c^subject: .*$'
+syn match Special '\c^Date: .*$'
+syn match Special '\c^To: .*$'
+syn match Special '\c^From: .*$'
+syn match Special '\c^Cc: .*$'
+
+
+syn match FmDiffDel  '^-.*$'
+syn match FmDiffDel  '> -.*$'lc=2
+
+syn match FmDiffADD  '^+.*$'
+syn match FmDiffADD  '> +.*$'lc=2
+
+syn match FmDiffLine  '^@@ .*$'
+syn match FmDiffLine  '> @@ .*$'lc=2
+
+syn match FmDiffHeader   '^diff.*$'
+syn match FmDiffHeader   '> diff.*$'lc=2
+syn match FmDiffHeader   '^index.*$'
+syn match FmDiffHeader   '> index.*$'lc=2
+syn match FmDiffHeader   '^--- .*$'
+syn match FmDiffHeader   '> --- .*$'lc=2
+syn match FmDiffHeader   '^+++ .*$'
+syn match FmDiffHeader   '> +++ .*$'lc=2
+
+hi def link  FmDiffHeader  TabLineSel
+hi def link  FmDiffDel  Operator
+hi def link  FmDiffAdd  Function
+hi def link  FmDiffLine  Identifier
+
+hi DiffHeader gui=bold term=bold
