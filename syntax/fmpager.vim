@@ -15,8 +15,8 @@ syn match MailLine3   '^> > >'lc=4
 syn match MailLine4   '^> > > >'lc=6
 
 
-hi MailLine1  guifg=blue    guibg=blue
-hi MailLine2  guifg=#DC5B00 guibg=#DC5B00
+hi MailLine1  guifg=#595959 guibg=#595959
+hi MailLine2  guifg=#cccccc guibg=#cccccc
 hi MailLine3  guifg=#1e7079 guibg=#1e7079
 hi MailLine4  guifg=red     guibg=red
 

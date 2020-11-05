@@ -6,3 +6,5 @@ runtime ftplugin/frainuilist.vim
 map  <buffer> q :qa<cr>
 
 setlocal nowinfixwidth
+
+map <buffer> S  :MailSavePath<cr>q

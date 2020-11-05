@@ -152,6 +152,27 @@ def align_email_addr(buf, *c):
         line = fmt % line
         buf.append(line)
 
+
+def mail_body_quote_handler(line):
+    level = 0
+    while True:
+        if not line:
+            break
+
+        if line[0] != '>':
+            break
+
+        level += 1
+        line = line[1:]
+
+        if not line:
+            break
+
+        if line[0] == ' ':
+            line = line[1:]
+
+    return ('> ' * level) + line
+
 def _mail_show(mail):
     vim.command("set filetype=fmpager")
     vim.command("setlocal modifiable")
@@ -187,28 +208,7 @@ def _mail_show(mail):
 
     for line in mail.Body().split('\n'):
         line = line.replace('\r', '')
-        level = 0
-
-        pos = 0
-        prefix = []
-        for i, c in enumerate(line):
-            if c == '>':
-                prefix.append('> ')
-                level += 1
-                pos = i + 1
-                continue
-
-            if c == ' ':
-                pos = i + 1
-                continue
-
-            break
-
-
-        line = line[pos:]
-
-        line = ''.join(prefix) + line
-
+        line = mail_body_quote_handler(line)
         b.append(line)
 
     atta = mail.Attachs()
@@ -222,6 +222,7 @@ def _mail_show(mail):
     b.append('=' * 80)
     b.append('fm info:')
     b.append('=%s' % mail.path)
+    b.append('R: reply  H: raw heder show  q: exit' )
 
     vim.command("setlocal nomodifiable")
 
@@ -284,6 +285,9 @@ def fm_mbox_handle(node, listwin):
 
 
 def fm_mbox_list(node, listwin):
+    check = time.localtime(fm.conf.mailbox.last_check)
+    check = time.strftime("%y/%m/%d %H:%M", check)
+    node.append(frainui.Leaf('check: %s' % check, None, None))
     node.append(frainui.Leaf('', None, None))
 
     for mdir in fm.conf.mbox:
@@ -406,24 +410,34 @@ def MailSend():
 
 
 @pyvim.cmd()
-def MailSaveId():
-    line = vim.current.buffer[-1]
-    if line[0] != '=':
+def MailSavePath():
+    node = g.ui_list.getnode()
+    if not node:
         return
 
-    path = line[1:]
+    if not node.ctx:
+        return
 
-    m = fm.Mail(path)
-    subject = m.Subject()
-    Id = m.Message_id()
+    mail = node.ctx
+    path = mail.path
 
-    f = os.environ.get('message_id_file')
+    #line = vim.current.buffer[-1]
+    #if line[0] != '=':
+    #    return
+
+
+    #path = line[1:]
+
+    #vim.command('silent !echo %s' % path)
+    #vim.command('redraw!')
+
+    f = os.environ.get('mail_path')
     if not f:
         return
 
-    open(f, 'w').write('%s\n%s\n' % (subject, Id))
+    open(f, 'w').write(path)
 
-    pyvim.echo('save message-id to %s' % f)
+    pyvim.echo('save mail path to console')
 
 
 @pyvim.cmd()
