@@ -239,7 +239,7 @@ class M(object):
         return ''
 
     def header(self, header):
-        h = self.get_mail().get(header)
+        h = self.get_mail().get(header, '')
         return decode(h)
 
     def Attachs(self):
@@ -405,13 +405,13 @@ class Mail(M):
         return d
 
     def From(self):
-        return self.get_mail().get('From')
+        return self.get_mail().get('From', '')
 
     def To(self):
-        return self.get_mail().get("TO")
+        return self.get_mail().get("TO", '')
 
     def Cc(self):
-        return self.get_mail().get("Cc")
+        return self.get_mail().get("Cc", '')
 
     def Date_ts(self):
         d = email.utils.parsedate_tz(self.Date())
@@ -539,7 +539,7 @@ class Mbox(object):
 
 def sendmail(path):
     c = open(path).read()
-    c = bytes(c, encode='utf8')
+    c = bytes(c, encoding='utf8')
     p = subprocess.Popen(['msmtp', '-t'],
             stdin = subprocess.PIPE,
             stdout = subprocess.PIPE,
@@ -550,8 +550,8 @@ def sendmail(path):
     code = p.returncode
 
     if 0 == code:
-        name = os.path.basename(name)
-        sent = os.path.join('~/.fm.d/sent', name)
+        name = os.path.basename(path)
+        sent = os.path.expanduser(os.path.join('~/.fm.d/sent', name))
         open(sent, 'w').write(c)
 
         os.remove(path)

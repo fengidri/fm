@@ -154,7 +154,7 @@ def save_mail(dirname, mail, Id, uid):
         Id,
         config.current_total,
         dirname,
-        m.get("Subject", '').replace('\n', ' ')
+        m.get("Subject", '').replace('\n', ' ').replace('\r', '')
         ))
 
 
@@ -205,6 +205,17 @@ def procmails(maillist):
             save_mail(d, mail, Id, uid)
 
 
+def procmails_builin(maillist):
+    for mail in maillist:
+        if mail == ')':
+            continue
+
+        Id = mail[0].split()[0]
+        uid = mail[0].split()[2]
+        mail = mail[1]
+
+        d = config.current_fold
+        save_mail(d, mail, Id, uid)
 
 
 def main():
@@ -224,6 +235,11 @@ def main():
         last = get_last_uid()
 
         sync(conn, fold, last, procmails)
+
+    fold = 'Sent'
+    config.current_fold = fold
+    last = get_last_uid()
+    sync(conn, fold, last, procmails_builin)
 
     save_last_check()
 
