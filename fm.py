@@ -299,7 +299,7 @@ class M(object):
             return
 
         for r in g.db.find_by_reply(self.Message_id()):
-            r = MailDb(r)
+            r = MailFromDb(r)
             for m  in self.sub_thread:
                 if m.Message_id() == r.Message_id():
                     break
@@ -423,7 +423,7 @@ class Mail(M):
 
 
 
-class MailDb(M):
+class MailFromDb(M):
     def __init__(self, record):
         M.__init__(self)
 
@@ -441,6 +441,8 @@ class MailDb(M):
         self.size        = record[11]
         self.path        = record[12]
         self.rowid       = record[13]
+
+        self.index = 0
 
         if self.status == 0:
             self.isnew = True
@@ -479,19 +481,26 @@ class Mbox(object):
         self.top = []
         self.mail_map = {}
         self.mail_list = []
+        self.isbuiltin = False
+
+        if os.path.basename(dirname) == 'Sent':
+            self.isbuiltin = True
 
         self.mbox = os.path.basename(dirname)
 
         self.load_db()
 
-        self.thread()
+        if self.isbuiltin:
+            self.top = self.mail_list
+        else:
+            self.thread()
 
         g.db.commit()
 
 
     def load_db(self):
         for r in g.db.getall_mbox(self.mbox):
-            m = MailDb(r)
+            m = MailFromDb(r)
             self.mail_list.append(m)
             self.mail_map[m.Message_id()] = m
 
@@ -510,7 +519,7 @@ class Mbox(object):
 
                 t = g.db.find_by_msgid(r)
                 if t:
-                    t = MailDb(t)
+                    t = MailFromDb(t)
                     self.mail_map[t.Message_id()] = t
                     t.append(m)
                     m = t
