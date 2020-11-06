@@ -335,6 +335,12 @@ def Mail():
     if g.default:
         g.default.node_open()
 
+
+def reply_copy_header(mail, header):
+    v = mail.header(header)
+    if v:
+        vim.current.buffer.append("%s: %s" % (header, v))
+
 @pyvim.cmd()
 def MailReply():
     line = vim.current.buffer[-1]
@@ -360,14 +366,6 @@ def MailReply():
 
     vim.current.buffer.append('From: %s <%s>' % (fm.conf.name, fm.conf.me))
 
-    # for list-id
-    list_id = M.header("List-ID")
-    if list_id:
-        vim.current.buffer.append("List-ID: %s" % list_id)
-
-    list_id = M.header("X-Mailing-List")
-    if list_id:
-        vim.current.buffer.append("X-Mailing-List: %s" % list_id)
 
     if m.From():
         vim.current.buffer.append('To: ' + m.From().replace('\n', ' '))
@@ -387,6 +385,11 @@ def MailReply():
 
     if m.Message_id():
         vim.current.buffer.append('In-Reply-To: ' + m.Message_id())
+
+    # for list-id
+    reply_copy_header(m, "List-ID")
+    reply_copy_header(m, "X-Mailing-List")
+    reply_copy_header(m, "Content-Transfer-Encoding")
 
     vim.current.buffer.append('')
 

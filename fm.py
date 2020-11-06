@@ -11,6 +11,7 @@ from email.header import decode_header
 import subprocess
 import sqlite3
 import functools
+import quopri
 
 class g:
     db = None
@@ -222,6 +223,16 @@ class M(object):
         self.mail = email.message_from_string(c)
         return self.mail
 
+    def __body(self, m):
+        if isinstance(m, bytes):
+            m = m.decode('UTF-8')
+
+        if self.header('Content-Transfer-Encoding') == 'quoted-printable':
+            m = quopri.decodestring(m)
+            m = m.decode('UTF-8')
+
+        return m
+
 
     def Body(self):
         b = self.get_mail()
@@ -232,10 +243,7 @@ class M(object):
             for part in b.walk():
                 if part.get_content_type() == t:
                     m = part.get_payload(None, False)
-                    if isinstance(m, bytes):
-                        return m.decode('UTF-8')
-                    else:
-                        return m
+                    return self.__body(m)
         return ''
 
     def header(self, header):
