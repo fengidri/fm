@@ -16,10 +16,8 @@ import sys
 
 f = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, f)
-print(f)
 
 import fm
-print(fm)
 
 
 class g:
@@ -228,8 +226,13 @@ def _mail_show(mail):
         b.append('')
 
     b.append('=' * 80)
-    b.append('fm info:')
-    b.append('R: reply  H: raw heder show  q: exit' )
+    b.append('FM:')
+    b.append('short keys:')
+    b.append('    R: reply  H: raw heder show  q: exit' )
+    b.append('command:')
+    b.append('    MailSend: send email' )
+    b.append('    MailSavePath: save current mail path to file(env: mail_path)' )
+    b.append('    MailDel: delete email' )
     b.append('=%s' % mail.path)
 
     vim.command("setlocal nomodifiable")
@@ -357,6 +360,15 @@ def MailReply():
 
     vim.current.buffer.append('From: %s <%s>' % (fm.conf.name, fm.conf.me))
 
+    # for list-id
+    list_id = M.header("List-ID")
+    if list_id:
+        vim.current.buffer.append("List-ID: %s" % list_id)
+
+    list_id = M.header("X-Mailing-List")
+    if list_id:
+        vim.current.buffer.append("X-Mailing-List: %s" % list_id)
+
     if m.From():
         vim.current.buffer.append('To: ' + m.From().replace('\n', ' '))
     if m.Cc():
@@ -445,7 +457,7 @@ def MailSavePath():
 
     open(f, 'w').write(path)
 
-    pyvim.echo('save mail path to console')
+    pyvim.echo('save mail path to %s' % f)
 
 
 @pyvim.cmd()
