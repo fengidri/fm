@@ -1,6 +1,5 @@
 # -*- coding:utf-8 -*-
 import pyvim
-import fm
 import vim
 
 from frainui import LIST
@@ -13,6 +12,15 @@ import os
 
 import subprocess
 import datetime
+import sys
+
+f = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, f)
+print(f)
+
+import fm
+print(fm)
+
 
 class g:
     default = None
@@ -221,8 +229,8 @@ def _mail_show(mail):
 
     b.append('=' * 80)
     b.append('fm info:')
-    b.append('=%s' % mail.path)
     b.append('R: reply  H: raw heder show  q: exit' )
+    b.append('=%s' % mail.path)
 
     vim.command("setlocal nomodifiable")
 

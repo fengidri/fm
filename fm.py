@@ -515,6 +515,7 @@ class Mbox(object):
 
 def sendmail(path):
     c = open(path).read()
+    c = bytes(c, encode='utf8')
     p = subprocess.Popen(['msmtp', '-t'],
             stdin = subprocess.PIPE,
             stdout = subprocess.PIPE,
