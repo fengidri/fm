@@ -539,6 +539,7 @@ class Mbox(object):
 
 def sendmail(path):
     c = open(path).read()
+
     p = subprocess.Popen(['msmtp', '-t'],
             stdin = subprocess.PIPE,
             stdout = subprocess.PIPE,
@@ -585,6 +586,19 @@ class Conf:
 
         self.me = c.get('user')
         self.name = c.get('name', self.me.split('@')[0])
+
+        self.mailbox = MailBox(c.get('user'))
+
+class MailBox(object):
+    def __init__(self, email, alias = None):
+        self.email = email
+        self.alias = alias
+
+        l = os.path.expanduser("~/.fm.d/")
+        l = os.path.join(l, email)
+        l = os.path.join(l, 'last_check')
+        self.last_check = float(open(l).read())
+
 
 
 def load_dir_to_db(path, mbox, isnew, pmaps):

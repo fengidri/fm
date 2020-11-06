@@ -75,7 +75,8 @@ def sync(conn, fold, last, callback):
 
         break
 
-    print("search %s. %s(%s). last: %s download: %s " % (typ, fold,
+    print("")
+    print(">> %-10s: search %s. %s. last: %s download: %s " % (fold, typ,
         config.current_total, last, len(ids) - ii))
 
     for i in ids[ii:]:
@@ -118,6 +119,14 @@ def save_uid(uid):
 
     t = os.path.join(t, 'uid')
     open(t, 'w').write(uid)
+
+def save_last_check():
+    t = os.path.join(config.confd, config.user)
+    if not os.path.isdir(t):
+        os.mkdir(t)
+
+    path = os.path.join(t, 'last_check')
+    open(path, 'w').write(str(time.time()))
 
 
 def save_mail(dirname, mail, Id, uid):
@@ -202,6 +211,7 @@ def main():
     conf()
 
     conn = imaplib.IMAP4_SSL(host = config.server, port = config.port)
+    print("Mail: %s" % config.user)
 
     typ, [data] = conn.login(config.user, config.password)
     if typ != 'OK':
@@ -215,7 +225,7 @@ def main():
 
         sync(conn, fold, last, procmails)
 
-
+    save_last_check()
 
 
 import argparse
