@@ -10,6 +10,7 @@ import json
 from email.header import decode_header
 import subprocess
 import sqlite3
+import functools
 
 class g:
     db = None
@@ -153,7 +154,7 @@ class Db(object):
         return self._exec(cmd)
 
     def find_by_msgid(self, msgid):
-        cmd = 'select * from FMIndex where msgid="%s"' % msgid
+        cmd = 'select *,rowid from FMIndex where msgid="%s"' % msgid
         self._exec(cmd)
         t = self.c.fetchone()
         if not t:
@@ -161,12 +162,12 @@ class Db(object):
         return t
 
     def find_by_reply(self, rid):
-        cmd = 'select * from FMIndex where in_reply_to="%s"' % rid
+        cmd = 'select *,rowid from FMIndex where in_reply_to="%s"' % rid
         self._exec(cmd)
         return self.c.fetchall()
 
     def getall_mbox(self, mbox):
-        cmd = 'select * from FMIndex where mbox="%s"' % mbox
+        cmd = 'select *,rowid from FMIndex where mbox="%s"' % mbox
         self._exec(cmd)
         return self.c.fetchall()
 
@@ -178,6 +179,12 @@ class Db(object):
 
     def sub_n_incr(self, msgid):
         cmd = 'update FMIndex set sub_n=sub_n + 1 where msgid="%s"' %  msgid
+        self._exec(cmd)
+        self.conn.commit()
+        return self.c.rowcount
+
+    def del_mail(self, mail):
+        cmd = "delete from FMIndex where rowid=%s" % mail.rowid
         self._exec(cmd)
         self.conn.commit()
         return self.c.rowcount
@@ -309,7 +316,20 @@ class M(object):
         if not self.sub_thread:
             return
 
-        self.sub_thread.sort(key = lambda x: x.Date_ts())
+        def cmpfun(a, b):
+            a_ts = a.Date_ts()
+            b_ts = b.Date_ts()
+
+            d = a_ts - b_ts
+            if d > -2 and d < 2:
+                if a.Subject() > b.Subject():
+                    return 1
+                else:
+                    return -1
+            return d
+
+
+        self.sub_thread.sort(key = functools.cmp_to_key(cmpfun))
         self.sub_thread[0].isfirst = True
         self.sub_thread[-1].islast = True
 
@@ -420,6 +440,7 @@ class MailDb(M):
         self.attach_n    = record[10]
         self.size        = record[11]
         self.path        = record[12]
+        self.rowid       = record[13]
 
         if self.status == 0:
             self.isnew = True
@@ -448,6 +469,9 @@ class MailDb(M):
     def Date_ts(self):
         d = email.utils.parsedate_tz(self.Date())
         return email.utils.mktime_tz(d)
+
+    def delete(self):
+        return g.db.del_mail(self)
 
 
 class Mbox(object):
@@ -556,12 +580,25 @@ class Conf:
                 box['name'] = d
 
                 if d == default:
-                    box['default_mbox'] = True
+                    box['default'] = True
 
                 self.mbox.append(box)
 
         self.me = c.get('user')
         self.name = c.get('name', self.me.split('@')[0])
+
+        self.mailbox = MailBox(c.get('user'))
+
+class MailBox(object):
+    def __init__(self, email, alias = None):
+        self.email = email
+        self.alias = alias
+
+        l = os.path.expanduser("~/.fm.d/")
+        l = os.path.join(l, email)
+        l = os.path.join(l, 'last_check')
+        self.last_check = float(open(l).read())
+
 
 
 def load_dir_to_db(path, mbox, isnew, pmaps):
