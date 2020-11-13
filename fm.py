@@ -402,7 +402,16 @@ class Mail(M):
 
     def Message_id(self):
         if not self.header_message_id:
-            self.header_message_id = self.get_mail().get("Message-Id", '').strip()
+            msgid = self.get_mail().get("Message-Id")
+            if msgid == None:
+                f = self.From()
+                f = EmailAddr(f)
+                filename = os.path.basename(self.path)
+                msgid = "<%s-%s-%s@%s>" % (time.time(), filename, f.name, f.server)
+            else:
+                msgid = msgid.strip()
+
+            self.header_message_id = msgid
 
         return self.header_message_id
 
@@ -555,8 +564,8 @@ class Mbox(object):
         return o
 
 def sendmail(path):
-    c = open(path).read()
-    c = bytes(c, encoding='utf8')
+    cstr = open(path).read()
+    c = bytes(cstr, encoding='utf8')
     p = subprocess.Popen(['msmtp', '-t'],
             stdin = subprocess.PIPE,
             stdout = subprocess.PIPE,
@@ -569,7 +578,7 @@ def sendmail(path):
     if 0 == code:
         name = os.path.basename(path)
         sent = os.path.expanduser(os.path.join('~/.fm.d/sent', name))
-        open(sent, 'w').write(c)
+        open(sent, 'w').write(cstr)
 
         os.remove(path)
 
