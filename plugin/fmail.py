@@ -180,9 +180,6 @@ def mail_body_quote_handler(line):
     return ('> ' * level) + line
 
 def _mail_show(mail):
-    vim.command("set filetype=fmpager")
-    vim.command("setlocal modifiable")
-
     b = vim.current.buffer
     del b[:]
 
@@ -235,8 +232,14 @@ def _mail_show(mail):
     b.append('    MailDel: delete email' )
     b.append('=%s' % mail.path)
 
-    vim.command("setlocal nomodifiable")
 
+def mail_show(mail):
+    vim.command("set filetype=fmpager")
+    vim.command("setlocal modifiable")
+
+    _mail_show(mail)
+
+    vim.command("setlocal nomodifiable")
 
 def fm_mail_handle(leaf, listwin):
     mail = leaf.ctx
@@ -246,12 +249,10 @@ def fm_mail_handle(leaf, listwin):
 
         leaf.update(index_line(mail))
 
-    _mail_show(mail)
+    mail_show(mail)
 
     g.pager_buf = vim.current.buffer
     g.pager_mail = mail
-
-
 
 
 def fm_mail_list(node, listwin):
@@ -276,7 +277,7 @@ def fm_mail_list(node, listwin):
 
         name = os.path.basename(m.path)
 
-        l = frainui.Leaf(name, m, fm_mail_handle, display = s, new_win=True)
+        l = frainui.Leaf(name, m, fm_mail_handle, display = s, last_win=True)
         node.append(l)
 
 
@@ -470,7 +471,7 @@ def MailHeader():
     if g.pager_buf != vim.current.buffer:
         return
 
-    _mail_show(g.pager_mail)
+    mail_show(g.pager_mail)
 
 
 

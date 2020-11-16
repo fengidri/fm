@@ -8,3 +8,5 @@ map  <buffer> q :qa<cr>
 setlocal nowinfixwidth
 
 map <buffer> S  :MailSavePath<cr>q
+
+map <buffer> <C-n> j<cr>
