@@ -128,15 +128,16 @@ def show_header_addr(b, n, h):
 def align_email_addr(buf, *c):
     lines = []
 
+
     for i in range(0, len(c), 2):
         field = c[i]
         header = c[i + 1]
+        if not header:
+            continue
 
-        h = header.replace('\n', '').replace('\r', '').split(',')
+        h = fm.EmailAddrLine(header)
 
         for a in h:
-            a = fm.EmailAddr(a)
-
             show = a.alias
             if not show:
                 show = a.name
@@ -421,6 +422,8 @@ def MailDel():
 
 @pyvim.cmd()
 def MailSend():
+    vim.command("update")
+
     path = vim.current.buffer.name
 
     code, out, err = fm.sendmail(path)

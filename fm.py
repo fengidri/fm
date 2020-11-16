@@ -29,6 +29,11 @@ def decode(h):
 
 class EmailAddr(object):
     def __init__(self, addr):
+        self.name   = ''
+        self.server = ''
+        self.alias  = ''
+        self.short  = ''
+
         addr = addr.strip()
 
         i = addr.find('<')
@@ -56,6 +61,33 @@ class EmailAddr(object):
                 self.short = self.alias
             else:
                 self.short = self.name
+
+class EmailAddrLine(list):
+    def __init__(self, line):
+        list.__init__(self)
+
+        line = line.strip().replace('\n', '').replace('\r', '')
+
+        s = 0
+        skip = False
+        for i, c in enumerate(line):
+            if skip:
+                if c == '"':
+                    skip = False
+                continue
+
+            if c == '"':
+                skip = True
+                continue
+
+            if c == ',':
+                addr = line[s: i].strip()
+                self.append(EmailAddr(addr))
+                s = i + 1
+
+        addr = line[s:].strip()
+        self.append(EmailAddr(addr))
+
 
 class Db(object):
     def __init__(self):
