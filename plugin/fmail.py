@@ -21,13 +21,13 @@ import fm
 
 
 class g:
-    default = None
-    last_subject = None
-    header_raw = False
-    pager_buf = None
-    pager_mail = None
-    mbox = None
-    config_short_time = True
+    default              = None
+    last_subject         = None
+    header_raw           = False
+    pager_buf            = None
+    pager_mail           = None
+    mbox                 = None
+    config_short_time    = True
     config_relative_time = True
 
 def need_hide_subject(m):
@@ -97,9 +97,7 @@ def index_line(m):
     subject = '%s %s' % (m.thread_prefix(), subject)
     subject = subject.ljust(90)[0:90]
 
-    f = m.From()
-    f = fm.EmailAddr(f)
-    f = f.short
+    f = m.From().short
     if f != '':
         f = '%s' % f
     else:
@@ -113,29 +111,18 @@ def index_line(m):
                    _from = f,
                    date = date);
 
-
-
-def show_header_addr(b, n, h):
-    if not h:
-        return
-
-    t = h.replace('\n', '').split(',')
-
-    b.append(n + t[0])
-    for tt in t[1:]:
-        b.append('   ' + tt)
-
 def align_email_addr(buf, *c):
     lines = []
 
 
     for i in range(0, len(c), 2):
         field = c[i]
-        header = c[i + 1]
-        if not header:
+        h = c[i + 1]
+        if not h:
             continue
 
-        h = fm.EmailAddrLine(header)
+        if not isinstance(h, list):
+            h = [h]
 
         for a in h:
             show = a.alias
@@ -314,8 +301,6 @@ def fm_mbox_list(node, listwin):
 
 @pyvim.cmd()
 def Mail():
-    fm.init()
-
     b = vim.current.buffer
     if len(b) != 1:
         return
@@ -370,20 +355,19 @@ def MailReply():
 
 
     if m.From():
-        vim.current.buffer.append('To: ' + m.From().replace('\n', ' '))
+        vim.current.buffer.append('To: ' + m.From().format())
     if m.Cc():
-        c = m.Cc().split(',')
-        c = [x.strip() for x in c]
+        c = m.Cc()
+        to = m.To()
+        for a in c:
+            if a.addr == fm.conf.me:
+                c.remove(a)
 
-        to = m.To().split(',')
-        for t in to:
-            t = t.strip()
-            a = fm.EmailAddr(t)
+        for a in to:
             if a.addr != fm.conf.me:
-                c.append(t)
+                c.append(a)
 
-        c = ', '.join(c)
-        vim.current.buffer.append('Cc: ' + c)
+        vim.current.buffer.append('Cc: ' + c.format())
 
     if m.Message_id():
         vim.current.buffer.append('In-Reply-To: ' + m.Message_id())
@@ -391,17 +375,35 @@ def MailReply():
     # for list-id
     reply_copy_header(m, "List-ID")
     reply_copy_header(m, "X-Mailing-List")
-    reply_copy_header(m, "Content-Transfer-Encoding")
 
     vim.current.buffer.append('')
 
     b = vim.current.buffer
 
-    b.append('On %s, %s wrote:' % (m.Date(), m.From()))
+    b.append('On %s, %s wrote:' % (m.Date(), m.From().format()))
 
     lines = m.Body().split('\n')
     for line in lines:
         vim.current.buffer.append('> ' + line.replace('\r', ''))
+
+@pyvim.cmd()
+def MailNew():
+    path = '~/.fm.d/draft/%s.mail' % time.time()
+    path = os.path.expanduser(path)
+
+    vim.command('vs ' + path)
+    vim.command("set filetype=fmreply")
+    vim.command("set buftype=")
+
+    b = vim.current.buffer
+
+    b[0] = 'Date: ' + email.utils.formatdate(localtime=True)
+    b.append('From: %s <%s>' % (fm.conf.name, fm.conf.me))
+    b.append('Subject: ')
+    b.append('To: ')
+    b.append('Cc: ')
+    b.append('')
+    b.append('')
 
 
 @pyvim.cmd()
@@ -426,9 +428,9 @@ def MailSend():
 
     path = vim.current.buffer.name
 
-    code, out, err = fm.sendmail(path)
+    ret = fm.sendmail(path)
 
-    if 0 == code:
+    if ret:
         vim.command('set buftype=nofile')
         pyvim.echo('send success')
         return

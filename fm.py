@@ -12,6 +12,10 @@ import subprocess
 import sqlite3
 import functools
 import quopri
+import smtplib
+from email.mime.text import MIMEText
+from email.header import Header
+import base64
 
 class g:
     db = None
@@ -33,6 +37,7 @@ class EmailAddr(object):
         self.server = ''
         self.alias  = ''
         self.short  = ''
+        self.addr   = ''
 
         addr = addr.strip()
 
@@ -62,6 +67,25 @@ class EmailAddr(object):
             else:
                 self.short = self.name
 
+    def format(self): #
+        if not self.alias:
+            return self.addr
+        return '%s <%s>' % (self.alias, self.addr)
+
+    def to_str(self): # return ascii string. =?UTF-8?xxxxxxx==?= <xxxx@xxxx.com>
+        if self.alias:
+            alias = self.alias
+            if not alias.isascii():
+                alias = Header(alias, 'utf-8').encode()
+            return "%s <%s>" % (alias, self.addr)
+
+        return '%s@%s' % (self.name, self.server)
+
+    def simple(self): # name@server.com
+        return '%s@%s' % (self.name, self.server)
+
+
+
 class EmailAddrLine(list):
     def __init__(self, line):
         list.__init__(self)
@@ -87,6 +111,21 @@ class EmailAddrLine(list):
 
         addr = line[s:].strip()
         self.append(EmailAddr(addr))
+
+    def format(self):
+        return ', '.join([x.format() for x in self])
+
+    def simple(self):
+        return ', '.join([x.simple() for x in self])
+
+    def simple_list(self):
+        return [x.simple() for x in self]
+
+    def to_str(self):
+        return ', '.join([x.to_str() for x in self])
+
+    def to_str_list(self):
+        return [x.to_str() for x in self]
 
 
 class Db(object):
@@ -166,17 +205,25 @@ class Db(object):
         else:
             status = 1
 
-        cc = m.Cc()
+        cc = m.header('Cc')
         if cc:
             cc = cc.replace("'", "''")
+
+        to = m.header('to')
+        if to:
+            to = to.replace("'", "''")
+
+        f = m.header('from')
+        if f:
+            f = f.replace("'", "''")
 
         cmd = cmd.format(mbox = mbox,
                    sub_n       = m.sub_n,
                    subject     = m.Subject().replace("'", "''"),
                    status      = status,
                    date        = m.Date(),
-                   to          = m.To().replace("'", "''"),
-                   From        = m.From().replace("'", "''"),
+                   to          = to,
+                   From        = f,
                    cc          = cc,
                    msgid       = m.Message_id(),
                    in_reply_to = m.In_reply_to().replace("'", "''"),
@@ -261,6 +308,10 @@ class M(object):
 
         if self.header('Content-Transfer-Encoding') == 'quoted-printable':
             m = quopri.decodestring(m)
+            m = m.decode('UTF-8')
+
+        if self.header('Content-Transfer-Encoding') == 'base64':
+            m = base64.b64decode(m)
             m = m.decode('UTF-8')
 
         return m
@@ -437,7 +488,6 @@ class Mail(M):
             msgid = self.get_mail().get("Message-Id")
             if msgid == None:
                 f = self.From()
-                f = EmailAddr(f)
                 filename = os.path.basename(self.path)
                 msgid = "<%s-%s-%s@%s>" % (time.time(), filename, f.name, f.server)
             else:
@@ -454,13 +504,19 @@ class Mail(M):
         return d
 
     def From(self):
-        return self.get_mail().get('From', '')
+        s = self.get_mail().get('From', '')
+        l = EmailAddrLine(s)
+        if l:
+            return l[0]
+        return None
 
     def To(self):
-        return self.get_mail().get("TO", '')
+        s = self.get_mail().get("TO", '')
+        return EmailAddrLine(s)
 
     def Cc(self):
-        return self.get_mail().get("Cc", '')
+        s = self.get_mail().get("Cc", '')
+        return EmailAddrLine(s)
 
     def Date_ts(self):
         d = email.utils.parsedate_tz(self.Date())
@@ -509,13 +565,16 @@ class MailFromDb(M):
         return self.date
 
     def From(self):
-        return self._from
+        l = EmailAddrLine(self._from)
+        if l:
+            return l[0]
+        return None
 
     def To(self):
-        return self.to
+        return EmailAddrLine(self.to)
 
     def Cc(self):
-        return self.cc
+        return EmailAddrLine(self.cc)
 
     def Date_ts(self):
         d = email.utils.parsedate_tz(self.Date())
@@ -595,10 +654,74 @@ class Mbox(object):
             m.output(o)
         return o
 
-def sendmail(path):
-    cstr = open(path).read()
-    c = bytes(cstr, encoding='utf8')
-    p = subprocess.Popen(['msmtp', '-t'],
+
+def file_to_message(path):
+    headers = {}
+
+    from_ = None
+    to = None
+
+    lines = open(path).readlines()
+    for i, line in enumerate(lines):
+        line = line.strip()
+        if not line:
+            body = ''.join(lines[i + 1:])
+            break
+
+        field, header = line.split(':', 1)
+        if not field or not header:
+            continue
+
+        field  = field.strip()
+        header = header.strip()
+
+        if field.lower() in ['to', 'cc']:
+            h = EmailAddrLine(header)
+            header = h.to_str()
+            if to == None:
+                to = h
+            else:
+                to.extend(h)
+
+        if field.lower() == 'from':
+            h = EmailAddrLine(header)
+            header = h.to_str()
+            from_ = h[0]
+
+        headers[field] = header
+
+    if body.isascii():
+        message = MIMEText(body, 'plain', 'ascii')
+    else:
+        cs = email.charset.Charset('utf-8')
+        cs.body_encoding = email.charset.QP
+        message = MIMEText(body, 'plain', _charset=cs)
+
+    for key, value in headers.items():
+        message[key] = value
+
+    return message, from_.simple(), to.simple_list()
+
+
+def sendmail_imap(path):
+    msg, from_, to = file_to_message(path)
+
+    smtp = smtplib.SMTP_SSL(conf.smtp_host, conf.smtp_port)
+    smtp.login(conf.user, conf.password)
+    smtp.sendmail(from_, to, msg.as_string())
+
+
+
+def sendmail_msmtp(path):
+    msg, from_, to = file_to_message(path)
+
+#    c = bytes(cstr, encoding='utf8')
+    c = msg.as_bytes()
+
+    cmd = ['msmtp', '-i']
+    cmd.extend(to)
+
+    p = subprocess.Popen(cmd,
             stdin = subprocess.PIPE,
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE)
@@ -606,15 +729,27 @@ def sendmail(path):
     stdout, stderr = p.communicate(c)
 
     code = p.returncode
+    return code
 
-    if 0 == code:
-        name = os.path.basename(path)
-        sent = os.path.expanduser(os.path.join('~/.fm.d/sent', name))
-        open(sent, 'w').write(cstr)
 
-        os.remove(path)
 
-    return code, stdout, stderr
+def sendmail(path, imap = True):
+    if imap:
+        sendmail_imap(path)
+    else:
+        code = sendmail_msmtp(path)
+        if code:
+            return
+
+    cstr = open(path).read()
+
+    name = os.path.basename(path)
+    sent = os.path.expanduser(os.path.join('~/.fm.d/sent', name))
+    open(sent, 'w').write(cstr)
+
+    os.remove(path)
+    return True
+
 
 
 class Conf:
@@ -623,6 +758,14 @@ class Conf:
         path = os.path.expanduser(path)
         j = open(path).read()
         c = json.loads(j)
+
+        self.user     = c['user']
+        self.server   = c['server']['host']
+        self.port     = c['server']['port']
+        self.password = c['server']['password']
+
+        self.smtp_host = c['smtp']['host']
+        self.smtp_port = c['smtp']['port']
 
         default = c.get('default')
 
@@ -706,26 +849,11 @@ def init():
     g.db = Db()
     load_to_db()
 
+init()
 
 if __name__ == '__main__':
     import sys
-    init()
-    if len(sys.argv) > 1:
-        path = sys.argv[1]
-        m = Mail(path)
-        print(m.Body())
-
-    else:
-        print(conf.mbox)
-
-        mbox = Mbox(conf.mbox[3]['path'])
-        head = None
-        for m in mbox.output():
-            if m.thread_head != head:
-                print('')
-                head = m.thread_head
-
-            print("%s" % (m.str(), ))
+    sendmail(sys.argv[1])
 
 
 

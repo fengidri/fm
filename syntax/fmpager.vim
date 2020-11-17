@@ -21,12 +21,13 @@ hi MailLine3  guifg=#1e7079 guibg=#1e7079
 hi MailLine4  guifg=red     guibg=red
 
 
+""syn region PreProc start='\c^[A-Za-z-]*:' end='^[^ \t]'me=e-1,he=e-1,re=s-1
 
 syn match Title  '\c^subject: .*$'
-syn match Special '\c^Date: .*$'
-syn match Special '\c^To: .*$'
-syn match Special '\c^From: .*$'
-syn match Special '\c^Cc: .*$'
+syn match Index '\c^Date: .*$'
+syn region Special start='\c^Cc:' end='^[^ \t]'me=e-1,he=e-1,re=s-1
+syn region Question start='\c^To:' end='^[^ \t]'me=e-1,he=e-1,re=s-1
+syn region PreProc start='\c^From:' end='^[^ \t]'me=e-1,he=e-1,re=s-1
 
 
 syn match FmDiffDel  '^-.*$'
