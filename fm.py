@@ -19,6 +19,7 @@ import base64
 
 class g:
     db = None
+    msgid = 0
 
 def decode(h):
     h = decode_header(h)[0]
@@ -30,6 +31,10 @@ def decode(h):
         if isinstance(h, bytes):
             h = h.decode("utf-8")
     return h
+
+def gen_msgid():
+    g.msgid += 1
+    return "<%s-%s-%s>" % (time.time(), g.msgid, conf.me)
 
 class EmailAddr(object):
     def __init__(self, addr):
@@ -110,7 +115,8 @@ class EmailAddrLine(list):
                 s = i + 1
 
         addr = line[s:].strip()
-        self.append(EmailAddr(addr))
+        if addr:
+            self.append(EmailAddr(addr))
 
     def format(self):
         return ', '.join([x.format() for x in self])
@@ -178,7 +184,11 @@ class Db(object):
         if not self.conn:
             return
 
-        return self.c.execute(cmd)
+        try:
+            return self.c.execute(cmd)
+        except:
+            print(cmd)
+            raise()
 
     def mark_db(self, path):
         if path.endswith('.db'):
@@ -596,14 +606,18 @@ class Mbox(object):
 
         self.mbox = os.path.basename(dirname)
 
+        s = time.time()
         self.load_db()
+        #print("load mbox index list from db: %s" % (time.time() -s))
 
+        s = time.time()
         if self.isbuiltin:
             self.top = self.mail_list
         else:
             self.thread()
 
         g.db.commit()
+        print("load thread: %s" % (time.time() -s))
 
 
     def load_db(self):
@@ -847,7 +861,9 @@ def init():
 
     conf = Conf()
     g.db = Db()
+    s = time.time()
     load_to_db()
+#    print("load to db use time: %s" % (time.time() - s))
 
 init()
 
