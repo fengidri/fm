@@ -1,0 +1,30 @@
+
+import fm
+import time
+import traceback
+
+def main():
+    fm.syncmail.main()
+
+import argparse
+parser = argparse.ArgumentParser(description="sync mail")
+parser.add_argument('-l', '--loop', help="loop", action='store_true')
+
+
+args = parser.parse_args()
+
+if args.loop:
+    while True:
+        t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+        print("%s syncmail..." % t)
+
+        try:
+            main()
+        except Exception as e:
+            traceback.print_stack()
+            print(e)
+
+        time.sleep(60)
+else:
+    main()

@@ -9,8 +9,12 @@ import imaplib
 import email
 import time
 import subprocess
-import transfermail
+from . import transfermail
 
+from . import mail
+from . import db
+
+db = db.db
 
 class config:
     confd = os.path.expanduser("~/.fm.d")
@@ -23,6 +27,7 @@ class config:
     saved    = False
     procmail = os.path.join(confd, 'procmail.py')
     transfer =  None
+    gid = 0
 
 def conf():
     path = os.path.expanduser("~/.fm.json")
@@ -60,7 +65,7 @@ def sync(conn, fold, last, callback):
         sys.exit(-1)
 
 
-    config.current_total = data
+    config.current_total = data.decode('utf8')
 
     typ, [data] = conn.uid('search', None, 'ALL')
     ids = data.split()
@@ -76,7 +81,7 @@ def sync(conn, fold, last, callback):
         break
 
     print("")
-    print(">> %-10s: search %s. %s. last: %s download: %s " % (fold, typ,
+    print(">> %-10s: search %s. total: %s. last: %s download: %s " % (fold, typ,
         config.current_total, last, len(ids) - ii))
 
     for i in ids[ii:]:
@@ -118,7 +123,7 @@ def save_uid(uid):
         os.mkdir(t)
 
     t = os.path.join(t, 'uid')
-    open(t, 'w').write(uid)
+    open(t, 'w').write(uid.decode('utf8'))
 
 def save_last_check():
     t = os.path.join(config.confd, config.user)
@@ -129,29 +134,40 @@ def save_last_check():
     open(path, 'w').write(str(time.time()))
 
 
+def save_mail_to_db(path, mbox):
+    m = mail.Mail(path)
+    m.db_insert(mbox)
+
+    r = m.In_reply_to()
+    if not r:
+        return
+
+    db.sub_n_incr(r)
+    db.commit()
+
+
 def save_mail(dirname, mail, Id, uid):
+    config.gid += 1
+
+    filename = "%s-%s-%s.mail" % (uid, time.time(), config.gid)
+
     path = os.path.join(config.deliver, dirname)
-    new = os.path.join(path, 'new')
     if not os.path.isdir(path):
         os.mkdir(path)
-        t = os.path.join(path, 'tmp')
-        os.mkdir(t)
-        t = os.path.join(path, 'cur')
-        os.mkdir(t)
-        os.mkdir(new)
 
-    filename = "%s-%s.eu6sqa" % (uid, time.time())
+    path = os.path.join(path, filename)
 
-    path = os.path.join(new, filename)
+    open(path, 'wb').write(mail)
 
-    open(path, 'w').write(mail)
+    save_mail_to_db(path, dirname)
+
     save_uid(uid)
     config.saved = True
 
-    m = email.message_from_string(mail)
+    m = email.message_from_bytes(mail)
 
     print("  [save %s/%s to %s] %s" % (
-        Id,
+        int(Id),
         config.current_total,
         dirname,
         m.get("Subject", '').replace('\n', ' ').replace('\r', '')
@@ -165,7 +181,7 @@ def procmail(mail):
     stdout, stderr = p.communicate(mail)
 
     o = []
-    for l in stdout.split('\n'):
+    for l in stdout.decode('utf8').split('\n'):
         l = l.strip()
         if not l:
             continue
@@ -185,7 +201,7 @@ def tfmail(mail, d):
 
 def procmails(maillist):
     for mail in maillist:
-        if mail == ')':
+        if mail == b')':
             continue
 
         Id = mail[0].split()[0]
@@ -244,30 +260,5 @@ def main():
     save_last_check()
 
 
-import argparse
-parser = argparse.ArgumentParser(description="sync mail")
-parser.add_argument('-l', '--loop', help="loop", action='store_true')
-
-
-args = parser.parse_args()
-
-if args.loop:
-    while True:
-        t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-
-        print("%s syncmail..." % t)
-
-        try:
-            main()
-        except Exception as e:
-            print e
-
-        time.sleep(60)
-else:
-    main()
-    if config.saved:
-        sys.exit(1)
-    else:
-        sys.exit(0)
 
 
