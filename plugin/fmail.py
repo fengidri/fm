@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*-
+#1 -*- coding:utf-8 -*-
 import pyvim
 import vim
 
@@ -194,7 +194,7 @@ def _mail_show(mail):
                 'Cc:',   mail.Cc())
 
 
-    b.append('')
+    #b.append('')
     b.append('=' * 80)
 
     for line in mail.Body().split('\n'):
@@ -214,10 +214,18 @@ def _mail_show(mail):
     b.append('FM:')
     b.append('short keys:')
     b.append('    R: reply  H: raw heder show  q: exit' )
+    b.append('')
     b.append('command:')
-    b.append('    MailSend: send email' )
+    b.append('    MailSend:     send email' )
     b.append('    MailSavePath: save current mail path to file(env: mail_path)' )
-    b.append('    MailDel: delete email' )
+    b.append('    MailDel:      delete email' )
+    b.append('')
+    b.append('more info:')
+    b.append('  mbox:      %s' % mail.mbox)
+    b.append('  sub:       %s' % mail.sub_n)
+    b.append('  sub-real:  %s' % len(mail.get_reply()))
+    b.append('  size:      %s' % mail.size)
+    b.append('')
     b.append('=%s' % mail.path)
 
 

@@ -94,7 +94,7 @@ class Db(object):
                    From        = f,
                    cc          = cc,
                    msgid       = m.Message_id(),
-                   in_reply_to = m.In_reply_to().replace("'", "''"),
+                   in_reply_to = m.In_reply_to(),
                    attach_n    = len(m.Attachs()),
                    size        = m.size,
                    path        = m.path,
@@ -110,7 +110,7 @@ class Db(object):
         return t
 
     def find_by_reply(self, rid):
-        cmd = 'select *,rowid from FMIndex where in_reply_to="%s"' % rid
+        cmd = 'select *,rowid from FMIndex where in_reply_to="%s" and mbox!="Sent"' % rid
         self._exec(cmd)
         return self.c.fetchall()
 
@@ -127,6 +127,12 @@ class Db(object):
 
     def sub_n_incr(self, msgid):
         cmd = 'update FMIndex set sub_n=sub_n + 1 where msgid="%s"' %  msgid
+        self._exec(cmd)
+        self.conn.commit()
+        return self.c.rowcount
+
+    def sub_n_set(self, msgid, n):
+        cmd = 'update FMIndex set sub_n=%s where msgid="%s"' %  (n, msgid)
         self._exec(cmd)
         self.conn.commit()
         return self.c.rowcount

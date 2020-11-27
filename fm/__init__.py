@@ -3,10 +3,14 @@
 
 import os
 import time
+import logging
 from . import db
 from . import send
 from . import syncmail
 from . import conf
+from . import mail
+
+Mail = mail.Mail
 
 conf = conf.conf
 
@@ -52,6 +56,7 @@ class Mbox(object):
             self.mail_map[m.Message_id()] = m
 
     def thread(self):
+        n = 0
         for m in self.mail_list:
             r = m.In_reply_to()
             if not r:
@@ -64,6 +69,7 @@ class Mbox(object):
                     p.append(m)
                     break
 
+                n += 1
                 t = mail.mail_db_msgid(r)
                 if t:
                     self.mail_map[t.Message_id()] = t
@@ -75,7 +81,6 @@ class Mbox(object):
 
                 self.top.append(m)
                 break
-
 
         self.top.sort(key = lambda x: x.last_recv_ts())
 

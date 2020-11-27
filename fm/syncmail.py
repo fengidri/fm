@@ -12,9 +12,6 @@ import subprocess
 from . import transfermail
 
 from . import mail
-from . import db
-
-db = db.db
 
 class config:
     confd = os.path.expanduser("~/.fm.d")
@@ -80,9 +77,8 @@ def sync(conn, fold, last, callback):
 
         break
 
-    print("")
-    print(">> %-10s: search %s. total: %s. last: %s download: %s " % (fold, typ,
-        config.current_total, last, len(ids) - ii))
+    #print(">> %-10s: search %s. total: %s. last: %s download: %s " % (fold, typ,
+    #    config.current_total, last, len(ids) - ii))
 
     for i in ids[ii:]:
         resp, data = conn.uid('fetch', i, '(RFC822)')
@@ -136,14 +132,9 @@ def save_last_check():
 
 def save_mail_to_db(path, mbox):
     m = mail.Mail(path)
+    m.isnew = True
     m.db_insert(mbox)
-
-    r = m.In_reply_to()
-    if not r:
-        return
-
-    db.sub_n_incr(r)
-    db.commit()
+    m.sub_n_incr()
 
 
 def save_mail(dirname, mail, Id, uid):
@@ -215,7 +206,7 @@ def procmails(maillist):
                 if not d:
                     continue
 
-                tfmail(mail, d)
+    #            tfmail(mail, d)
                 continue
 
             save_mail(d, mail, Id, uid)
@@ -223,7 +214,7 @@ def procmails(maillist):
 
 def procmails_builin(maillist):
     for mail in maillist:
-        if mail == ')':
+        if mail == b')':
             continue
 
         Id = mail[0].split()[0]

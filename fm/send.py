@@ -4,6 +4,12 @@ import subprocess
 from email.mime.text import MIMEText
 from email.header import Header
 import smtplib
+from . import mail
+from . import conf
+import os
+import email
+conf = conf.conf
+
 
 def file_to_message(path):
     headers = {}
@@ -26,7 +32,7 @@ def file_to_message(path):
         header = header.strip()
 
         if field.lower() in ['to', 'cc']:
-            h = EmailAddrLine(header)
+            h = mail.EmailAddrLine(header)
             header = h.to_str()
             if to == None:
                 to = h
@@ -34,7 +40,7 @@ def file_to_message(path):
                 to.extend(h)
 
         if field.lower() == 'from':
-            h = EmailAddrLine(header)
+            h = mail.EmailAddrLine(header)
             header = h.to_str()
             from_ = h[0]
 
@@ -83,7 +89,7 @@ def sendmail_msmtp(path):
 
 
 
-def sendmail(path, imap = True):
+def sendmail(path, imap = False):
     if imap:
         sendmail_imap(path)
     else:

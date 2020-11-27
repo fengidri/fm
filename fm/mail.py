@@ -31,6 +31,18 @@ def decode(h):
             h = h.decode("utf-8")
     return h
 
+def header_parse_msgid(h):
+    if not h:
+        return
+    if h[0] == '<':
+        p = h.find('>')
+        if p == -1:
+            return None
+
+        return h[0:p + 1]
+
+
+
 class EmailAddr(object):
     def __init__(self, addr):
         self.name   = ''
@@ -234,6 +246,12 @@ class M(object):
 
         return s
 
+    def get_reply(self):
+        o = []
+        for r in db.find_by_reply(self.Message_id()):
+            o.append(MailFromDb(r))
+        return o
+
     def check_sub_n(self):
         if not self.sub_n:
             return
@@ -241,9 +259,12 @@ class M(object):
         if self.sub_n == len(self.sub_thread):
             return
 
-        for r in db.find_by_reply(self.Message_id()):
-            r = MailFromDb(r)
-            for m  in self.sub_thread:
+        rs = self.get_reply()
+        if len(rs) != self.sub_n:
+            db.sub_n_set(self.Message_id(), len(rs))
+
+        for r in rs:
+            for m in self.sub_thread:
                 if m.Message_id() == r.Message_id():
                     break
             else:
@@ -313,7 +334,12 @@ class M(object):
         for i, m in enumerate(self.sub_thread):
             m.output(o)
 
+    def sub_n_incr(self):
+        r = self.In_reply_to()
+        if not r:
+            return
 
+        db.sub_n_incr(r)
 
 
 # this init from file path
@@ -331,6 +357,7 @@ class Mail(M):
         if not self.header_in_reply_to:
             r = self.get_mail().get("In-Reply-To", '')
             r = r.split('\n')[0].strip()
+            r = header_parse_msgid(r)
             self.header_in_reply_to = r
 
         return self.header_in_reply_to
@@ -338,6 +365,7 @@ class Mail(M):
     def Message_id(self):
         if not self.header_message_id:
             msgid = self.get_mail().get("Message-Id")
+            msgid = header_parse_msgid(msgid)
             if msgid == None:
                 f = self.From()
                 filename = os.path.basename(self.path)
@@ -360,7 +388,7 @@ class Mail(M):
         l = EmailAddrLine(s)
         if l:
             return l[0]
-        return None
+        return EmailAddr('')
 
     def To(self):
         s = self.get_mail().get("TO", '')
@@ -417,7 +445,7 @@ class MailFromDb(M):
         l = EmailAddrLine(self._from)
         if l:
             return l[0]
-        return None
+        return EmailAddr('')
 
     def To(self):
         return EmailAddrLine(self.to)
@@ -427,6 +455,8 @@ class MailFromDb(M):
 
     def Date_ts(self):
         d = email.utils.parsedate_tz(self.Date())
+        if not d:
+            return 0
         return email.utils.mktime_tz(d)
 
     def delete(self):
