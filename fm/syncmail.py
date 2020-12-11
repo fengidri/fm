@@ -119,7 +119,7 @@ def save_uid(uid):
         os.mkdir(t)
 
     t = os.path.join(t, 'uid')
-    open(t, 'w').write(uid.decode('utf8'))
+    open(t, 'w').write(uid)
 
 def save_last_check():
     t = os.path.join(config.confd, config.user)
@@ -138,6 +138,9 @@ def save_mail_to_db(path, mbox):
 
 
 def save_mail(dirname, mail, Id, uid):
+    uid = uid.decode('utf8')
+    Id = int(Id)
+
     config.gid += 1
 
     filename = "%s-%s-%s.mail" % (uid, time.time(), config.gid)
@@ -158,9 +161,7 @@ def save_mail(dirname, mail, Id, uid):
     m = email.message_from_bytes(mail)
 
     print("  [save %s/%s to %s] %s" % (
-        int(Id),
-        config.current_total,
-        dirname,
+        Id, config.current_total, dirname,
         m.get("Subject", '').replace('\n', ' ').replace('\r', '')
         ))
 

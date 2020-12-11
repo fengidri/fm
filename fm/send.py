@@ -77,6 +77,9 @@ def sendmail_msmtp(path):
     cmd = ['msmtp', '-i']
     cmd.extend(to)
 
+    print("email path: %s" % path)
+    print(" ".join(cmd))
+
     p = subprocess.Popen(cmd,
             stdin = subprocess.PIPE,
             stdout = subprocess.PIPE,
@@ -85,6 +88,9 @@ def sendmail_msmtp(path):
     stdout, stderr = p.communicate(c)
 
     code = p.returncode
+    if code:
+        print(stdout)
+        print(stderr)
     return code
 
 

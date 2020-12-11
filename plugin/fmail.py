@@ -21,9 +21,11 @@ import fm
 
 
 class g:
+    thread               = True
     default              = None
     last_subject         = None
     header_raw           = False
+    header_filter        = True
     pager_buf            = None
     pager_mail           = None
     mbox                 = None
@@ -68,7 +70,7 @@ def index_line(m):
             day = (d1 - f1).days
 
             if day:
-                date = '%dday %s' % (day, hm)
+                date = '+%d %s' % (day, hm)
             else:
                 date = hm
 
@@ -167,12 +169,30 @@ def mail_body_quote_handler(line):
 
     return ('> ' * level) + line
 
+
+def header_filter(k):
+    header_filter = ['Message-Id', 'Subject', 'Date',
+            'From', 'To', 'Cc', 'In-Reply-To']
+
+    if not g.header_filter:
+        return True
+
+
+    for h in header_filter:
+        if h.lower() == k.lower():
+            return True
+    return False
+
 def _mail_show(mail):
     b = vim.current.buffer
     del b[:]
 
+
     if g.header_raw:
         for k,v in mail.get_mail().items():
+            if not header_filter(k):
+                continue
+
             v = v.replace('\r', '')
             v = v.split('\n')
 
@@ -182,11 +202,8 @@ def _mail_show(mail):
                 b.append(t)
 
     else:
-        s = 'Subject: ' + mail.Subject()
-
-        b[0] = s
-
-        b.append('Date: ' + mail.Date())
+        b[0] = 'Subject: ' + mail.Subject()
+        b.append('Date: '    + mail.Date())
 
         align_email_addr(b,
                 'From:', mail.From(),
@@ -270,7 +287,7 @@ def fm_mail_list(node, listwin):
             head = m.thread_head
             first = True
 
-        if first:
+        if g.mbox.thread_show and first:
             c = m.Subject()
             c = 'T: ' + c
             node.append(frainui.Leaf(c, None, None))
@@ -289,7 +306,7 @@ def fm_mail_list(node, listwin):
 
 def fm_mbox_handle(node, listwin):
     mdir = node.ctx
-    mbox = fm.Mbox(mdir['path'])
+    mbox = fm.Mbox(mdir['path'], g.thread)
 
     g.mbox = mbox
 
@@ -499,5 +516,18 @@ def MailHeader():
 
     mail_show(g.pager_mail)
 
+@pyvim.cmd()
+def MailFilter():
+    g.header_filter = not g.header_filter
+
+    if g.pager_buf != vim.current.buffer:
+        return
+
+    mail_show(g.pager_mail)
+
+
+@pyvim.cmd()
+def MailThread():
+    g.thread = not g.thread
 
 

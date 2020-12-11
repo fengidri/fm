@@ -57,7 +57,7 @@ class Db(object):
             return self.c.execute(cmd)
         except:
             print(cmd)
-            raise()
+            raise(Exception(cmd))
 
     def commit(self):
         self.conn.commit()

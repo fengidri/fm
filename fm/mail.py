@@ -176,15 +176,22 @@ class M(object):
         self.mail = email.message_from_string(c)
         return self.mail
 
-    def __body(self, m):
-        if isinstance(m, bytes):
-            m = m.decode('UTF-8')
+    def __body(self, part):
+        m = part.get_payload(None, False)
+        charset = part.get_charset()
+        if not charset:
+            charset = 'UTF-8'
 
-        if self.header('Content-Transfer-Encoding') == 'quoted-printable':
+        cte = part.get('Content-Transfer-Encoding')
+
+        if isinstance(m, bytes):
+            m = m.decode(charset)
+
+        if cte == 'quoted-printable':
             m = quopri.decodestring(m)
             m = m.decode('UTF-8')
 
-        if self.header('Content-Transfer-Encoding') == 'base64':
+        if cte == 'base64':
             m = base64.b64decode(m)
             m = m.decode('UTF-8')
 
@@ -199,8 +206,7 @@ class M(object):
         for t in tp:
             for part in b.walk():
                 if part.get_content_type() == t:
-                    m = part.get_payload(None, False)
-                    return self.__body(m)
+                    return self.__body(part)
         return ''
 
     def header(self, header):
@@ -265,7 +271,7 @@ class M(object):
 
         for r in rs:
             for m in self.sub_thread:
-                if m.Message_id() == r.Message_id():
+                if m.rowid == r.rowid:
                     break
             else:
                 self.append(r)
@@ -275,7 +281,7 @@ class M(object):
 
         self.thread_head = head
 
-        self.check_sub_n()
+#        self.check_sub_n()
 
         if not self.sub_thread:
             return
@@ -404,6 +410,7 @@ class Mail(M):
 
     def db_insert(self, mbox):
         db.insert_mail(mbox, self)
+        db.commit()
 
 class MailFromDb(M):
     def __init__(self, record):
