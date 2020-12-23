@@ -24,6 +24,9 @@ def gen_msgid():
     g.msgid += 1
     return "<%s-%s-%s>" % (time.time(), g.msgid, conf.me)
 
+
+
+
 class Mbox(object):
     def __init__(self, dirname, thread = True):
         self.top = []
@@ -51,84 +54,45 @@ class Mbox(object):
 
         print("load thread: %s" % (time.time() -s))
 
-
     def load_db(self):
         for m in mail.mail_db_mbox(self.mbox):
             self.mail_list.append(m)
             self.mail_map[m.Message_id()] = m
 
-    def _move(self, target, m):
-        target.append(m)
-        self.tmap[m.Message_id()] = m
+    def top_mail(self, m):
+        self.top.append(m)
+        if not m.topic:
+            m.topic = mail.Topic()
+            m.topic.mails.append(m)
 
     def find_upper(self, m):
-        if m in self.mail_list:
-            self.mail_list.remove(m)
-
-        msgid = m.Message_id()
-        if msgid in self.mail_map:
-            del self.mail_map[msgid]
+        if m.parent or m in self.top:
+            return
 
         r = m.In_reply_to()
         if not r:
-            self._move(self.top, m)
-            return
-
-        p = self.tmap.get(r)
-        if p:
-            self._move(p, m)
+            self.top_mail(m)
             return
 
         p = self.mail_map.get(r)
         if p:
+            p.append(m)
             self.find_upper(p)
-            self._move(p, m)
             return
 
-        p = mail.mail_db_msgid(r)
-        if p:
-            self.find_upper(p)
-            self._move(p, m)
+        t = mail.mail_db_msgid(r)
+        if not t:
+            self.top_mail(m)
             return
 
-        self._move(self.top, m)
+        self.mail_map[t.Message_id()] = t
+        t.append(m)
+        self.find_upper(t)
+
 
     def thread(self):
-        self.tmap = {}
-        self.top = []
         for m in self.mail_list:
             self.find_upper(m)
-
-        self.top.sort(key = lambda x: x.last_recv_ts())
-
-        for m in self.top:
-            m.thread(0, m)
-
-
-    def _thread(self):
-        for m in self.mail_list:
-            r = m.In_reply_to()
-            if not r:
-                self.top.append(m)
-                continue
-
-            while r:
-                p = self.mail_map.get(r)
-                if p:
-                    p.append(m)
-                    break
-
-                t = mail.mail_db_msgid(r)
-                if t:
-                    self.mail_map[t.Message_id()] = t
-                    t.append(m)
-                    m = t
-                    r = m.In_reply_to()
-                    if r:
-                        continue
-
-                self.top.append(m)
-                break
 
         self.top.sort(key = lambda x: x.last_recv_ts())
 

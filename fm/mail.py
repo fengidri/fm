@@ -34,6 +34,10 @@ def decode(h):
 def header_parse_msgid(h):
     if not h:
         return
+
+    h = h.replace('\n', ' ')
+    h = h.strip()
+
     if h[0] == '<':
         p = h.find('>')
         if p == -1:
@@ -142,9 +146,16 @@ class EmailAddrLine(list):
 
 
 
+class Topic(object):
+    def __init__(self):
+        # 所有相关 mail 的 list, 防止出现循环引用情况
+        self.mails = []
+
 
 class M(object):
     def __init__(self):
+        self.topic = None
+
         self.sub_n = 0
         self.parent = None
         self.sub_thread = []
@@ -227,6 +238,24 @@ class M(object):
         return att
 
     def append(self, m):
+        if self.topic == None and m.topic == None:
+            topic = Topic()
+            topic.mails.append(self)
+            topic.mails.append(m)
+            self.topic = topic
+            m.topic = topic
+
+        elif self.topic:
+            if m in self.topic.mails:
+                return
+
+            m.topic = self.topic
+            self.topic.mails.append(m)
+
+        elif m.topic:
+            m.topic.mails.append(self)
+            self.topic = m.topic
+
         self.sub_thread.append(m)
         m.parent = self
 
@@ -281,7 +310,7 @@ class M(object):
 
         self.thread_head = head
 
-#        self.check_sub_n()
+        self.check_sub_n()
 
         if not self.sub_thread:
             return

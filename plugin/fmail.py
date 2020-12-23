@@ -269,7 +269,8 @@ def fm_mail_handle(leaf, listwin):
 
 
 def fm_mail_list(node, listwin):
-    ms = g.mbox.output(reverse=True)
+    mbox = fm.Mbox(g.mbox['path'], g.thread)
+    ms = mbox.output(reverse=True)
 
     head = None
     node.append(frainui.Leaf('', None, None))
@@ -287,7 +288,7 @@ def fm_mail_list(node, listwin):
             head = m.thread_head
             first = True
 
-        if g.mbox.thread_show and first:
+        if mbox.thread_show and first:
             c = m.Subject()
             c = 'T: ' + c
             node.append(frainui.Leaf(c, None, None))
@@ -303,14 +304,12 @@ def fm_mail_list(node, listwin):
         node.append(l)
 
 
-
 def fm_mbox_handle(node, listwin):
     mdir = node.ctx
-    mbox = fm.Mbox(mdir['path'], g.thread)
 
-    g.mbox = mbox
+    g.mbox = mdir
 
-    g.ui_list.title = "MBox: %s thread: %s" % (mdir['name'], len(mbox.top))
+    g.ui_list.title = "MBox: %s " % (mdir['name'], )
 
     g.ui_list.show()
     g.ui_list.refresh()
@@ -531,3 +530,4 @@ def MailThread():
     g.thread = not g.thread
 
 
+    g.ui_list.refresh()
