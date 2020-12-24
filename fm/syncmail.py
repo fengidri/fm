@@ -225,6 +225,26 @@ def procmails_builin(maillist):
         d = config.current_fold
         save_mail(d, mail, Id, uid)
 
+def rebuild_db():
+    conf()
+
+    dirs = os.listdir(config.deliver)
+    for d in dirs:
+        if d[0] == '.':
+            continue
+        dirpath = os.path.join(config.deliver, d)
+        for f in os.listdir(dirpath):
+            if f[0] == '.':
+                continue
+
+            path = os.path.join(dirpath, f)
+            if os.path.isdir(path):
+                for f in os.listdir(path):
+                    npath = os.path.join(path, f)
+                    save_mail_to_db(npath, d)
+            else:
+                save_mail_to_db(path, d)
+
 
 def main():
     conf()

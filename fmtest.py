@@ -9,6 +9,6 @@ import sys
 mbox = fm.Mbox(sys.argv[1])
 for m in mbox.output():
         l = '  ' * m.index + m.Subject() + m.In_reply_to()
-        print(l)
+#        print(l)
 
 

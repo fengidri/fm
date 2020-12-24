@@ -8,6 +8,7 @@ import email.utils
 import datetime
 import time
 import json
+import logging
 from email.header import decode_header
 import functools
 from email.mime.text import MIMEText
@@ -150,6 +151,7 @@ class Topic(object):
     def __init__(self):
         # 所有相关 mail 的 list, 防止出现循环引用情况
         self.mails = []
+        self.mbox = None
 
 
 class M(object):
@@ -247,7 +249,7 @@ class M(object):
 
         elif self.topic:
             if m in self.topic.mails:
-                return
+                return False
 
             m.topic = self.topic
             self.topic.mails.append(m)
@@ -258,6 +260,7 @@ class M(object):
 
         self.sub_thread.append(m)
         m.parent = self
+        return True
 
     def mark_readed(self):
         self.isnew = False
@@ -294,16 +297,27 @@ class M(object):
         if self.sub_n == len(self.sub_thread):
             return
 
-        rs = self.get_reply()
+        paths = []
+        rs = []
+
+        for r in self.get_reply():
+            if r.path in paths:
+                continue
+
+            paths.append(r.path)
+            rs.append(r)
+
         if len(rs) != self.sub_n:
             db.sub_n_set(self.Message_id(), len(rs))
 
         for r in rs:
             for m in self.sub_thread:
-                if m.rowid == r.rowid:
+                if m.path == r.path:
                     break
             else:
-                self.append(r)
+                ret = self.append(r)
+                if ret:
+                    r.copy(self.topic.mbox)
 
     def thread(self, index, head):
         self.index = index
@@ -497,6 +511,14 @@ class MailFromDb(M):
 
     def delete(self):
         return db.del_mail(self)
+
+    def copy(self, mbox):
+        if self.mbox == mbox:
+            return
+        new = Mail(self.path)
+        new.isnew = self.isnew
+        new.db_insert(mbox)
+        logging.warn("copy mail: %s to mbox: %s", self.path, mbox)
 
 
 def mail_db_mbox(mbox):
