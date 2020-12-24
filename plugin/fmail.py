@@ -32,6 +32,7 @@ class g:
     config_short_time    = True
     config_relative_time = True
 
+
 def need_hide_subject(m):
     m.hide_subject = False
 
@@ -458,6 +459,22 @@ def MailDel():
     mail = node.ctx
     mail.delete()
     node.update(' ')
+
+@pyvim.cmd()
+def MailFold():
+    node = g.ui_list.getnode()
+    if not node:
+        return
+
+    if not node.ctx:
+        return
+
+    if not isinstance(node, frainui.Leaf):
+        return
+
+    mail = node.ctx
+    mail.set_fold()
+    g.maillist.refresh()
 
 @pyvim.cmd()
 def MailSend():

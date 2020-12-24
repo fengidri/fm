@@ -171,6 +171,8 @@ class M(object):
         self.header_in_reply_to = None
         self.header_message_id = None
 
+        self.fold = None # for vim plugin
+
     def get_mail(self):
         if self.mail:
             return self.mail
@@ -349,6 +351,16 @@ class M(object):
         for m in self.sub_thread:
             m.thread(index + 1, head)
 
+    def news(self):
+        n = 0
+        for m in self.sub_thread:
+            n += m.news()
+
+        if self.isnew:
+            n += 1
+
+        return n
+
 
     def str(self):
         subject = self.Subject()
@@ -465,14 +477,15 @@ class MailFromDb(M):
         self.subject     = record[3]
         self.date        = record[4]
         self.to          = record[5]
-        self._from        = record[6]
+        self._from       = record[6]
         self.cc          = record[7]
         self.msgid       = record[8]
         self.in_reply_to = record[9]
         self.attach_n    = record[10]
         self.size        = record[11]
         self.path        = record[12]
-        self.rowid       = record[13]
+        self.fold        = record[13]
+        self.rowid       = record[14]
 
         self.index = 0
 
@@ -519,6 +532,15 @@ class MailFromDb(M):
         new.isnew = self.isnew
         new.db_insert(mbox)
         logging.warn("copy mail: %s to mbox: %s", self.path, mbox)
+
+    def set_fold(self):
+        if self.fold:
+            fold = 0
+            self.fold = False
+        else:
+            fold = 1
+            self.fold = True
+        db.set_fold(self.rowid, fold)
 
 
 def mail_db_mbox(mbox):
