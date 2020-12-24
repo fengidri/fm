@@ -107,11 +107,14 @@ class Mbox(object):
                 topic_map[tp] = topic
                 topic_list.append(topic)
 
+        for tp in self.topics:
+            tp.thread()
+
         self.topics = topic_list
         self.topics.sort(key = lambda x: x.timestamp(), reverse=True)
 
-        for tp in self.topics:
-            tp.thread()
+    def get_topics(self):
+        return self.topics
 
     def output(self, reverse = False):
         top = self.top

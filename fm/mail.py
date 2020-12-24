@@ -186,10 +186,9 @@ class Topic(object):
     def marge(self, topic):
         self.topics.append(topic)
         self.tops.append(topic.default_top)
-        self.mails.extend(topic.mails)
 
     def timestamp(self):
-        return min([x.last_recv_ts() for x in self.tops])
+        return max([x.last_recv_ts() for x in self.tops])
 
     def thread(self):
         for m in self.tops:
@@ -306,6 +305,12 @@ class M(object):
                 return False;
 
             m.topic = self.topic = topic
+            self.topic.default_top = self
+
+        elif self.topic and m.topic:
+            for n in m.topic.mails:
+                if not self.topic.append(n):
+                    return False
 
         elif self.topic:
             if not self.topic.append(m):
@@ -318,11 +323,10 @@ class M(object):
                 return False
 
             self.topic = m.topic
+            self.topic.default_top = self
 
         self.sub_thread.append(m)
         m.parent = self
-
-        self.topic.default_top = self
 
         return True
 
@@ -336,7 +340,7 @@ class M(object):
         ts = self.Date_ts()
 
         for m in self.sub_thread:
-            t = m.Date_ts()
+            t = m.last_recv_ts()
             if t > ts:
                 ts = t
         return ts

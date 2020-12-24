@@ -330,7 +330,7 @@ class MailList(object):
 
 
     def fm_mail_list_thread(self, mbox, node):
-        for topic in mbox.topics:
+        for topic in mbox.get_topics():
             n = frainui.Node(' ' + topic.topic(), topic, self.fm_topic_mail_list, isdir = False)
             node.append(n)
 
@@ -514,6 +514,28 @@ def MailFold():
 
     mail = node.ctx
     mail.set_fold()
+    g.maillist.refresh()
+
+@pyvim.cmd()
+def MailMarkRead():
+    start, end = pyvim.selectpos()
+    start = start[0]
+    end = end[0]
+
+    for i in range(start, end + 1):
+        node = g.ui_list.getnode(i)
+        if not node:
+            continue
+
+        if not node.ctx:
+            continue
+
+        if not isinstance(node, frainui.Leaf):
+            continue
+
+        mail = node.ctx
+        mail.mark_readed()
+
     g.maillist.refresh()
 
 @pyvim.cmd()
