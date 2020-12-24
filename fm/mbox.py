@@ -20,6 +20,7 @@ class Mbox(object):
         self.mail_list = []
         self.isbuiltin = False
         self.thread_show = thread
+        self.topics = []
 
         if os.path.basename(dirname) == 'Sent':
             self.isbuiltin = True
@@ -28,13 +29,12 @@ class Mbox(object):
         self.mbox = os.path.basename(dirname)
 
         s = time.time()
-        self.load_db()
-
-        s = time.time()
         if self.thread_show:
+            self.load_db()
             self.thread()
         else:
-            self.top = self.mail_list
+            self.top = mail.mail_db_mbox(self.mbox)
+            self.top.sort(key = lambda x: x.last_recv_ts())
 
         db.db.commit()
 
@@ -56,14 +56,19 @@ class Mbox(object):
         if not m.topic:
             m.topic = mail.Topic()
             m.topic.mails.append(m)
+            m.topic.default_top = m
+
         m.topic.mbox = self.mbox
+
+        self.topics.append(m.topic)
 
     def find_upper(self, m):
         if m.parent or m in self.top:
             return
 
         r = m.In_reply_to()
-        if not r:
+        msgid = m.Message_id()
+        if not r or r == msgid:
             self.top_mail(m)
             return
 
@@ -89,10 +94,24 @@ class Mbox(object):
         for m in self.mail_list:
             self.find_upper(m)
 
-        self.top.sort(key = lambda x: x.last_recv_ts())
+        topic_map = {}
+        topic_list = []
 
-        for m in self.top:
-            m.thread(0, m)
+        for topic in self.topics:
+            topic.done()
+            tp = topic.topic()
+            one = topic_map.get(tp)
+            if one:
+                one.marge(topic)
+            else:
+                topic_map[tp] = topic
+                topic_list.append(topic)
+
+        self.topics = topic_list
+        self.topics.sort(key = lambda x: x.timestamp(), reverse=True)
+
+        for tp in self.topics:
+            tp.thread()
 
     def output(self, reverse = False):
         top = self.top

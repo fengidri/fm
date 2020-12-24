@@ -151,7 +151,61 @@ class Topic(object):
     def __init__(self):
         # 所有相关 mail 的 list, 防止出现循环引用情况
         self.mails = []
+        self.paths = [] # all path of the mails
+
         self.mbox = None
+        self.default_top = None
+        self.tops = []
+
+        self.topics = []
+
+    def append(self, m):
+        if m.path in self.paths:
+            return False
+
+        if m in self.mails:
+            return False
+
+        self.mails.append(m)
+        self.paths.append(m.path)
+        return True
+
+    def done(self):
+        self.tops.append(self.default_top)
+
+    def topic(self):
+        tp = self.default_top.Subject()
+        pos = tp.find(']')
+        if pos == -1:
+            pos = 0
+        else:
+            pos += 1
+
+        return tp[pos:].strip()
+
+    def marge(self, topic):
+        self.topics.append(topic)
+        self.tops.append(topic.default_top)
+        self.mails.extend(topic.mails)
+
+    def timestamp(self):
+        return min([x.last_recv_ts() for x in self.tops])
+
+    def thread(self):
+        for m in self.tops:
+            m.thread(0, m)
+
+        self.tops.sort(key = lambda x: x.last_recv_ts())
+
+    def output(self, reverse = False):
+        top = self.tops
+        if reverse:
+            top = top[::-1]
+
+        o = []
+        for m in top:
+            m.output(o)
+        return o
 
 
 class M(object):
@@ -244,24 +298,32 @@ class M(object):
     def append(self, m):
         if self.topic == None and m.topic == None:
             topic = Topic()
-            topic.mails.append(self)
-            topic.mails.append(m)
-            self.topic = topic
-            m.topic = topic
+
+            if not topic.append(self):
+                return False
+
+            if not topic.append(m):
+                return False;
+
+            m.topic = self.topic = topic
 
         elif self.topic:
-            if m in self.topic.mails:
+            if not self.topic.append(m):
                 return False
 
             m.topic = self.topic
-            self.topic.mails.append(m)
 
         elif m.topic:
-            m.topic.mails.append(self)
+            if not m.topic.append(self):
+                return False
+
             self.topic = m.topic
 
         self.sub_thread.append(m)
         m.parent = self
+
+        self.topic.default_top = self
+
         return True
 
     def mark_readed(self):
