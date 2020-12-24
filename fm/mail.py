@@ -482,8 +482,13 @@ class Mail(M):
             r = r.split('\n')[0].strip()
             r = header_parse_msgid(r)
             self.header_in_reply_to = r
+        else:
+            r = self.header_in_reply_to
 
-        return self.header_in_reply_to
+        if r == self.Message_id:
+            r = None
+
+        return r
 
     def Message_id(self):
         if not self.header_message_id:

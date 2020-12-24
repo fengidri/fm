@@ -50,70 +50,6 @@ def need_hide_subject(m):
     g.last_subject = subject
 
 
-def index_line(m):
-    if m.isnew:
-        stat = '*'
-    else:
-        stat = ' '
-
-    date = m.Date_ts()
-    if g.config_relative_time:
-        if not m.parent:
-            date = time.strftime("%m-%d %H:%M", time.localtime(date))
-        else:
-            f = time.localtime(m.thread_head.Date_ts())
-            d = time.localtime(date)
-            hm = time.strftime("%H:%M", d)
-
-            f1 = datetime.datetime(f.tm_year, f.tm_mon, f.tm_mday)
-            d1 = datetime.datetime(d.tm_year, d.tm_mon, d.tm_mday)
-
-            day = (d1 - f1).days
-
-            if day:
-                date = '+%d %s' % (day, hm)
-            else:
-                date = hm
-
-            date = date.rjust(len('01-01 00:00'))
-
-
-
-    elif g.config_short_time:
-        now = time.time()
-        s = time.strftime("%m-%d %H:%M", time.localtime(date))
-        d = time.strftime('%m-%d ', time.localtime())
-        if s.startswith(d):
-            n = len(d)
-            date = ' ' * n + s[n:]
-        else:
-            date = s
-    else:
-        date = time.strftime("%m-%d %H:%M", time.localtime(date))
-
-
-    if m.hide_subject:
-        subject = ''
-    else:
-        subject = m.Subject()
-
-    subject = '%s %s' % (m.thread_prefix(), subject)
-    subject = subject.ljust(90)[0:90]
-
-    f = m.From().short
-    if f != '':
-        f = '%s' % f
-    else:
-        f = '==>'
-
-    f = f.ljust(15)[0:15]
-
-    fmt = '{stat} {subject} {_from} {date}'
-    fmt = '  {stat} {_from} {date} {subject} [{mbox}]'
-    return fmt.format(stat = stat,
-                   subject = subject,
-                   _from = f,
-                   date = date, mbox = m.mbox);
 
 def align_email_addr(buf, *c):
     lines = []
@@ -255,68 +191,174 @@ def mail_show(mail):
 
     vim.command("setlocal nomodifiable")
 
-def fm_mail_handle(leaf, listwin):
-    mail = leaf.ctx
+class MailList(object):
+    def __init__(self):
+        ui_list = LIST("FM List", self.fm_mail_list, ft='fmindex',
+                use_current_buffer = True, title = 'FM List')
 
-    if mail.isnew:
-        mail.mark_readed()
+        self.ui_list = ui_list
 
-        leaf.update(index_line(mail))
+        g.ui_list = ui_list
 
-    mail_show(mail)
+    def refresh(self):
+        pos = vim.current.window.cursor
 
-    g.pager_buf = vim.current.buffer
-    g.pager_mail = mail
+        g.ui_list.title = "MBox: %s " % (g.mbox['name'], )
+        g.ui_list.show()
+        g.ui_list.refresh(opensub = True)
 
+        vim.current.window.cursor = pos
 
-def fm_mail_list(node, listwin):
-    mbox = fm.Mbox(g.mbox['path'], g.thread)
-    ms = mbox.output(reverse=True)
-
-    head = None
-    node.append(frainui.Leaf('', None, None))
-
-    for m in ms:
-        first = False
-        if head:
-            if head != m.thread_head:
-                first = True
-                # empty line
-                node.append(frainui.Leaf('-' * 130, None, None))
-
-                head = m.thread_head
+    def strline(self, m):
+        if m.isnew:
+            stat = '*'
         else:
-            head = m.thread_head
-            first = True
+            stat = ' '
 
-        if mbox.thread_show and first:
-            c = m.Subject()
-            c = 'T: ' + c
-            node.append(frainui.Leaf(c, None, None))
+        date = m.Date_ts()
+        if g.config_relative_time:
+            if not m.parent:
+                date = time.strftime("%m-%d %H:%M", time.localtime(date))
+            else:
+                f = time.localtime(m.thread_head.Date_ts())
+                d = time.localtime(date)
+                hm = time.strftime("%H:%M", d)
+
+                f1 = datetime.datetime(f.tm_year, f.tm_mon, f.tm_mday)
+                d1 = datetime.datetime(d.tm_year, d.tm_mon, d.tm_mday)
+
+                day = (d1 - f1).days
+
+                if day:
+                    date = '+%d %s' % (day, hm)
+                else:
+                    date = hm
+
+                date = date.rjust(len('01-01 00:00'))
 
 
-        need_hide_subject(m)
 
-        s = index_line(m)
+        elif g.config_short_time:
+            now = time.time()
+            s = time.strftime("%m-%d %H:%M", time.localtime(date))
+            d = time.strftime('%m-%d ', time.localtime())
+            if s.startswith(d):
+                n = len(d)
+                date = ' ' * n + s[n:]
+            else:
+                date = s
+        else:
+            date = time.strftime("%m-%d %H:%M", time.localtime(date))
 
-        name = os.path.basename(m.path)
 
-        l = frainui.Leaf(name, m, fm_mail_handle, display = s, last_win=True)
-        node.append(l)
+        if m.hide_subject:
+            subject = ''
+        else:
+            subject = m.Subject()
 
+        subject = '%s %s' % (m.thread_prefix(), subject)
+        if m.fold:
+            subject += ' ......'
+
+        subject = subject.ljust(90)[0:90]
+
+        f = m.From().short
+        if f != '':
+            f = '%s' % f
+        else:
+            f = '==>'
+
+        f = f.ljust(15)[0:15]
+
+        fmt = '{stat} {subject} {_from} {date}'
+        fmt = '{stat} {_from} {date} {subject} [{mbox}]'
+        return fmt.format(stat = stat,
+                       subject = subject,
+                       _from = f,
+                       date = date, mbox = m.mbox);
+
+    def fm_mail_handle(self, leaf, listwin):
+        mail = leaf.ctx
+
+        if mail.isnew:
+            mail.mark_readed()
+
+            leaf.update(self.strline(mail))
+
+        mail_show(mail)
+
+        g.pager_buf = vim.current.buffer
+        g.pager_mail = mail
+
+    def fm_topic_mail_list(self, node, listwin):
+        topic = node.ctx
+        ms = topic.output(reverse=True)
+
+        leaf_num = 0
+
+        head = None
+        for m in ms:
+            first = False
+            if head:
+                if head != m.thread_head:
+                    first = True
+                    if leaf_num > 1:
+                        node.append(frainui.Leaf('', None, None))
+
+                    head = m.thread_head
+            else:
+                head = m.thread_head
+                first = True
+
+            if first:
+                leaf_num = 0
+            else:
+                if head.fold:
+                    continue
+
+            need_hide_subject(m)
+
+            s = self.strline(m)
+
+            name = os.path.basename(m.path)
+
+            l = frainui.Leaf(name, m, self.fm_mail_handle, display = s, last_win=True)
+            leaf_num += 1
+            node.append(l)
+
+        node.append(frainui.Leaf('', None, None))
+
+
+    def fm_mail_list_thread(self, mbox, node):
+        for topic in mbox.topics:
+            n = frainui.Node(' ' + topic.topic(), topic, self.fm_topic_mail_list, isdir = False)
+            node.append(n)
+
+    def fm_mail_list(self, node, listwin):
+        mbox = fm.Mbox(g.mbox['path'], g.thread)
+        if g.thread:
+            self.fm_mail_list_thread(mbox, node)
+            return
+
+        ms = mbox.output(reverse=True)
+
+        head = None
+        node.append(frainui.Leaf('', None, None))
+
+        for m in ms:
+            s = self.strline(m)
+
+            name = os.path.basename(m.path)
+
+            l = frainui.Leaf(name, m, self.fm_mail_handle, display = s, last_win=True)
+            node.append(l)
 
 def fm_mbox_handle(node, listwin):
     mdir = node.ctx
 
     g.mbox = mdir
 
-    g.ui_list.title = "MBox: %s " % (mdir['name'], )
-
-    g.ui_list.show()
-    g.ui_list.refresh()
-
-
-
+    g.maillist.refresh()
 
 def fm_mbox_list(node, listwin):
     check = time.localtime(fm.conf.mailbox.last_check)
@@ -343,18 +385,16 @@ def Mail():
         return
 
     ui_mbox = LIST("FM Mbox", fm_mbox_list, title = fm.conf.me)
-
-    ui_list = LIST("FM List", fm_mail_list, ft='fmindex',
-            use_current_buffer = True, title = 'FM List')
-
     ui_mbox.show()
     ui_mbox.refresh()
 
-    g.ui_list = ui_list
     g.ui_mbox = ui_mbox
+
+    g.maillist = MailList()
 
     if g.default:
         g.default.node_open()
+
 
 
 def reply_copy_header(mail, header):
@@ -545,6 +585,5 @@ def MailFilter():
 @pyvim.cmd()
 def MailThread():
     g.thread = not g.thread
+    g.maillist.refresh()
 
-
-    g.ui_list.refresh()
