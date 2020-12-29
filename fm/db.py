@@ -36,7 +36,8 @@ class Db(object):
                    attach_n    TEXT NOT NULL,
                    size        INT  default 0,
                    path        TEXT NOT NULL,
-                   fold        BOOL default 0
+                   fold        BOOL default 0,
+                   flag        INT  default 0
                    );'''
 
         r = c.execute(cmd_table)
@@ -140,6 +141,12 @@ class Db(object):
 
     def set_fold(self, rowid, v):
         cmd = 'update FMIndex set fold=%s where rowid=%s' %  (v, rowid)
+        self._exec(cmd)
+        self.conn.commit()
+        return self.c.rowcount
+
+    def set_flag(self, rowid, v):
+        cmd = 'update FMIndex set flag=%s where rowid=%s' %  (v, rowid)
         self._exec(cmd)
         self.conn.commit()
         return self.c.rowcount

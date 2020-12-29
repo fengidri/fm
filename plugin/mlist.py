@@ -99,6 +99,11 @@ class MailList(object):
         else:
             stat = ' '
 
+        if m.flag:
+            stat += '⚑'
+        else:
+            stat += ' '
+
         date = self.strdate(m)
         f = ''
 
@@ -258,3 +263,113 @@ class MailList(object):
 
             l = frainui.Leaf(name, m, self.fm_mail_handle, display = s, last_win=True)
             node.append(l)
+
+def MailDel():
+    node = g.ui_list.getnode()
+    if not node:
+        return
+
+    if not node.ctx:
+        return
+
+    if not isinstance(node, frainui.Leaf):
+        return
+
+    mail = node.ctx
+    mail.delete()
+    node.update(' ')
+
+def MailFold():
+    node = g.ui_list.getnode()
+    if not node:
+        return
+
+    if not node.ctx:
+        return
+
+    if not isinstance(node, frainui.Leaf):
+        return
+
+    mail = node.ctx
+    mail.set_fold()
+    g.maillist.refresh()
+
+def MailFlag():
+    node = g.ui_list.getnode()
+    if not node:
+        return
+
+    if not node.ctx:
+        return
+
+    if not isinstance(node, frainui.Leaf):
+        return
+
+    mail = node.ctx
+    if mail.flag:
+        mail.set_flag(0)
+    else:
+        mail.set_flag(1)
+    g.maillist.refresh()
+
+def MailMarkRead():
+    start, end = pyvim.selectpos()
+    start = start[0]
+    end = end[0]
+
+    refresh = False
+
+    for i in range(start, end + 1):
+        node = g.ui_list.getnode(i)
+        if not node:
+            continue
+
+        if not node.ctx:
+            continue
+
+        if not isinstance(node, frainui.Leaf):
+            continue
+
+        mail = node.ctx
+        mail.mark_readed()
+        refresh = True
+
+    if refresh:
+        g.maillist.refresh()
+
+def MailThread():
+    g.thread = not g.thread
+    g.maillist.refresh()
+
+def refresh():
+    g.maillist.refresh()
+
+@pyvim.cmd()
+def MailNew():
+    path = '~/.fm.d/draft/%s.mail' % time.time()
+    path = os.path.expanduser(path)
+
+    vim.command('e ' + path)
+    vim.command("set filetype=fmreply")
+    vim.command("set buftype=")
+
+    b = vim.current.buffer
+
+    b[0] = 'Date: ' + email.utils.formatdate(localtime=True)
+    b.append('Message-Id: ' + fm.gen_msgid())
+    b.append('From: %s <%s>' % (fm.conf.name, fm.conf.me))
+    b.append('Subject: ')
+    b.append('To: ')
+    b.append('Cc: ')
+    b.append('')
+    b.append('')
+
+menu = [
+        ("Refresh --- refresh",                       refresh),
+        ("Fold    --- fold current thread",           MailFold),
+        ("Flag    --- set flag 1",                    MailFlag),
+        ("Thread  --- show by thread or plain",       MailThread),
+        ("Delete  --- delate current mail",           MailDel),
+        ("Readed  --- mark the selected mail readed", MailMarkRead),
+        ("New     --- create new mail",               MailNew),
+        ]

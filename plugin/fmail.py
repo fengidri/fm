@@ -33,81 +33,6 @@ def Mail():
     if g.default:
         g.default.node_open()
 
-@pyvim.cmd()
-def MailNew():
-    path = '~/.fm.d/draft/%s.mail' % time.time()
-    path = os.path.expanduser(path)
-
-    vim.command('e ' + path)
-    vim.command("set filetype=fmreply")
-    vim.command("set buftype=")
-
-    b = vim.current.buffer
-
-    b[0] = 'Date: ' + email.utils.formatdate(localtime=True)
-    b.append('Message-Id: ' + fm.gen_msgid())
-    b.append('From: %s <%s>' % (fm.conf.name, fm.conf.me))
-    b.append('Subject: ')
-    b.append('To: ')
-    b.append('Cc: ')
-    b.append('')
-    b.append('')
-
-def MailDel():
-    node = g.ui_list.getnode()
-    if not node:
-        return
-
-    if not node.ctx:
-        return
-
-    if not isinstance(node, frainui.Leaf):
-        return
-
-    mail = node.ctx
-    mail.delete()
-    node.update(' ')
-
-def MailFold():
-    node = g.ui_list.getnode()
-    if not node:
-        return
-
-    if not node.ctx:
-        return
-
-    if not isinstance(node, frainui.Leaf):
-        return
-
-    mail = node.ctx
-    mail.set_fold()
-    g.maillist.refresh()
-
-@pyvim.cmd()
-def MailMarkRead():
-    start, end = pyvim.selectpos()
-    start = start[0]
-    end = end[0]
-
-    refresh = False
-
-    for i in range(start, end + 1):
-        node = g.ui_list.getnode(i)
-        if not node:
-            continue
-
-        if not node.ctx:
-            continue
-
-        if not isinstance(node, frainui.Leaf):
-            continue
-
-        mail = node.ctx
-        mail.mark_readed()
-        refresh = True
-
-    if refresh:
-        g.maillist.refresh()
 
 def MailSend():
     vim.command("update")
@@ -139,12 +64,6 @@ def MailFilter():
 
     fmail.mail_show(g.pager_mail)
 
-def MailThread():
-    g.thread = not g.thread
-    g.maillist.refresh()
-
-def refresh():
-    g.maillist.refresh()
 
 def MailAck():
     b = vim.current.buffer
@@ -172,14 +91,7 @@ def menu(m):
 
 @pyvim.cmd()
 def MailMenu():
-    menu([
-            ("Refresh --- refresh",                       refresh),
-            ("Fold    --- fold current thread",           MailFold),
-            ("Thread  --- show by thread or plain",       MailThread),
-            ("Delete  --- delate current mail",           MailDel),
-            ("Readed  --- mark the selected mail readed", MailMarkRead),
-            ("New     --- create new mail",               MailNew),
-            ])
+    menu(mlist.menu)
 
 
 @pyvim.cmd()

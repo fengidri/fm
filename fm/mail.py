@@ -564,7 +564,8 @@ class MailFromDb(M):
         self.size        = record[11]
         self.path        = record[12]
         self.fold        = record[13]
-        self.rowid       = record[14]
+        self.flag        = record[14]
+        self.rowid       = record[15]
 
         self.index = 0
 
@@ -620,6 +621,9 @@ class MailFromDb(M):
             fold = 1
             self.fold = True
         db.set_fold(self.rowid, fold)
+
+    def set_flag(self, flag):
+        db.set_flag(self.rowid, flag)
 
 
 def mail_db_mbox(mbox):
