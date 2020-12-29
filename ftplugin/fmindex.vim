@@ -10,3 +10,4 @@ setlocal nowinfixwidth
 map <buffer> S  :MailSavePath<cr>q
 
 map <buffer> <C-n> j<cr>
+map <buffer> <F2> :MailMenu<cr>

@@ -310,7 +310,7 @@ class M(object):
         elif self.topic and m.topic:
             for n in m.topic.mails:
                 if not self.topic.append(n):
-                    return False
+                    continue
 
         elif self.topic:
             if not self.topic.append(m):
@@ -433,7 +433,15 @@ class M(object):
 
         return '%s%s' % (self.thread_prefix(), subject)
 
-    def thread_prefix(self):
+    def is_reply(self):
+        subject = self.Subject()
+        if subject[0:3].lower() == 're:':
+            if self.parent:
+                return True
+        return False
+
+
+    def thread_prefix(self, user = None):
         if self.index == 0:
             return ''
 
