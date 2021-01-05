@@ -375,9 +375,6 @@ class M(object):
             paths.append(r.path)
             rs.append(r)
 
-        if len(rs) != self.sub_n:
-            db.sub_n_set(self.Message_id(), len(rs))
-
         for r in rs:
             for m in self.sub_thread:
                 if m.path == r.path:
@@ -386,6 +383,8 @@ class M(object):
                 ret = self.append(r)
                 if ret:
                     r.copy(self.topic.mbox)
+
+        db.sub_n_set(self.Message_id(), len(self.sub_thread))
 
     def thread(self, index, head):
         self.index = index

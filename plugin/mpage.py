@@ -1,11 +1,13 @@
 #1 -*- coding:utf-8 -*-
 import vim
+import pyvim
 import g
 import fm
 import time
 import os
 import email
 import email.utils
+import vgit.options
 
 def reply_copy_header(mail, header):
     v = mail.header(header)
@@ -100,13 +102,15 @@ def _mail_show(mail):
                 b.append(t)
 
     else:
-        b[0] = 'Subject: ' + mail.Subject()
+        b[0] ='Message-Id: ' + mail.Message_id()
         b.append('Date: '    + mail.Date())
 
         align_email_addr(b,
                 'From:', mail.From(),
                 'To:',   mail.To(),
                 'Cc:',   mail.Cc())
+
+        b.append('Subject: ' + mail.Subject())
 
 
     #b.append('')
@@ -142,6 +146,13 @@ def show(mail):
 
     vim.command("setlocal nomodifiable")
 
+def current_mail():
+    line = vim.current.buffer[-1]
+    if line[0] != '=':
+        return
+
+    path = line[1:]
+    return fm.Mail(path)
 
 def reply():
     line = vim.current.buffer[-1]
@@ -206,6 +217,63 @@ def reply():
 
 
 
+def MailSend():
+    vim.command("update")
+
+    path = vim.current.buffer.name
+
+    ret = fm.sendmail(path)
+
+    if ret:
+        vim.command('set buftype=nofile')
+        pyvim.echo('send success')
+        return
+
+    pyvim.echo('send fail')
+
+def MailHeader():
+    g.header_raw = not g.header_raw
+
+    if g.pager_buf != vim.current.buffer:
+        return
+
+    show(g.pager_mail)
+
+def MailFilter():
+    g.header_filter = not g.header_filter
+
+    if g.pager_buf != vim.current.buffer:
+        return
+
+    show(g.pager_mail)
 
 
+def MailAck():
+    b = vim.current.buffer
+    l = vim.current.window.cursor[0] - 1
+    b[l] = 'Acked-by: %s <%s>' % (fm.conf.name, fm.conf.me)
 
+def MailReview():
+    b = vim.current.buffer
+    l = vim.current.window.cursor[0] - 1
+    b[l] = 'Reviewed-by: %s <%s>' % (fm.conf.name, fm.conf.me)
+
+def mail_git_append():
+    m = current_mail()
+    subject = m.Subject()
+    pos = subject.find(']')
+    if pos > -1:
+        subject = subject[pos:].strip()
+
+    line = vim.current.line
+    vgit.options.commit_log_append(line, target = subject)
+
+menu = [
+            ("Reply(R)   --- reply this mail",    reply),
+            ("Header(H)  --- show raw headers",   MailHeader),
+            ("Filter     --- show other headers", MailFilter),
+            ("Send       --- send this mail",     MailSend),
+            ("Ack        --- add Acked-By",       MailAck),
+            ("Review     --- add Reviewed-By ",   MailReview),
+            ("Git Append --- git commit log append",   mail_git_append),
+            ]

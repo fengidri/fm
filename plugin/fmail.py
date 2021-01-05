@@ -34,46 +34,6 @@ def Mail():
         g.default.node_open()
 
 
-def MailSend():
-    vim.command("update")
-
-    path = vim.current.buffer.name
-
-    ret = fm.sendmail(path)
-
-    if ret:
-        vim.command('set buftype=nofile')
-        pyvim.echo('send success')
-        return
-
-    pyvim.echo('send fail')
-
-def MailHeader():
-    g.header_raw = not g.header_raw
-
-    if g.pager_buf != vim.current.buffer:
-        return
-
-    fmail.mail_show(g.pager_mail)
-
-def MailFilter():
-    g.header_filter = not g.header_filter
-
-    if g.pager_buf != vim.current.buffer:
-        return
-
-    fmail.mail_show(g.pager_mail)
-
-
-def MailAck():
-    b = vim.current.buffer
-    l = vim.current.window.cursor[0] - 1
-    b[l] = 'Acked-by: %s <%s>' % (fm.conf.name, fm.conf.me)
-
-def MailReview():
-    b = vim.current.buffer
-    l = vim.current.window.cursor[0] - 1
-    b[l] = 'Reviewed-by: %s <%s>' % (fm.conf.name, fm.conf.me)
 
 def menu(m):
     keys, handler = zip(*m)
@@ -96,11 +56,4 @@ def MailMenu():
 
 @pyvim.cmd()
 def MailPageMenu():
-    menu([
-            ("Reply(R)  --- reply this mail",    mpage.reply),
-            ("Header(H) --- show raw headers",   MailHeader),
-            ("Filter    --- show other headers", MailFilter),
-            ("Send      --- send this mail",     MailSend),
-            ("Ack       --- add Acked-By",       MailAck),
-            ("Review    --- add Reviewed-By ",   MailReview),
-            ])
+    menu(mpage.menu)
