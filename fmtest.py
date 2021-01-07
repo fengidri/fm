@@ -11,6 +11,7 @@ topic = mbox.topics[0]
 print(len(topic.tops))
 print(len(topic.mails))
 for m in topic.output(True):
+    break
     l = '  ' * m.index + m.Subject() + m.In_reply_to()
     print(l)
 

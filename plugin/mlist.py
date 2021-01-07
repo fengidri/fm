@@ -39,7 +39,7 @@ def need_hide_subject(m):
 
 class MailList(object):
     def __init__(self):
-        ui_list = LIST("FM List", self.fm_mail_list, ft='fmindex',
+        ui_list = LIST("FM List", self.list_handler, ft='fmindex',
                 use_current_buffer = True, title = 'FM List')
 
         self.ui_list = ui_list
@@ -49,9 +49,8 @@ class MailList(object):
     def refresh(self):
         pos = vim.current.window.cursor
 
-        g.ui_list.title = "MBox: %s " % (g.mbox['name'], )
         g.ui_list.show()
-        g.ui_list.refresh(opensub = True)
+        g.ui_list.refresh()
 
         vim.current.window.cursor = pos
 
@@ -188,7 +187,7 @@ class MailList(object):
                 _from = f,
                 date = date, ext = ext);
 
-    def fm_mail_handle(self, leaf, listwin):
+    def mail_show(self, leaf, listwin):
         mail = leaf.ctx
 
         if mail.isnew:
@@ -201,7 +200,7 @@ class MailList(object):
         g.pager_buf = vim.current.buffer
         g.pager_mail = mail
 
-    def fm_topic_mail_list(self, node, listwin):
+    def topic_list(self, node, listwin):
         topic = node.ctx
         ms = topic.output(reverse=True)
 
@@ -213,8 +212,9 @@ class MailList(object):
             if head:
                 if head != m.thread_head:
                     first = True
-                    if leaf_num > 1:
-                        node.append(frainui.Leaf('', None, None))
+                    #if leaf_num > 1:
+                    #    node.append(frainui.Leaf('', None, None))
+                    node.append(frainui.Leaf('', None, None))
 
                     head = m.thread_head
             else:
@@ -233,25 +233,32 @@ class MailList(object):
 
             name = os.path.basename(m.path)
 
-            l = frainui.Leaf(name, m, self.fm_mail_handle, display = s, last_win=True)
+            l = frainui.Leaf(name, m, self.mail_show, display = s, last_win=True)
             leaf_num += 1
             node.append(l)
 
         node.append(frainui.Leaf('', None, None))
 
 
-    def fm_mail_list_thread(self, mbox, node):
+    def list_thread(self, mbox, node):
+        i = 0
+        defopen = True
         for topic in mbox.get_topics():
-            n = frainui.Node(' ' + topic.topic(), topic, self.fm_topic_mail_list, isdir = False)
+            i += 1
+            if i == 100:
+                defopen = False
+
+            n = frainui.Node(' ' + topic.topic(), topic, self.topic_list,
+                    isdir = False, defopen = defopen)
+
             node.append(n)
 
-    def fm_mail_list(self, node, listwin):
-        mbox = fm.Mbox(g.mbox['path'], g.thread)
-        if mbox.thread_show:
-            self.fm_mail_list_thread(mbox, node)
-            return
+        self.ui_list.title = "MBox: %s topic: %s mails: %d marked: %d" % (g.mbox['name'],
+                i, mbox.num, mbox.marked_n)
 
+    def list_plain(self, mbox, node):
         ms = mbox.output(reverse=True)
+        self.ui_list.title = "MBox: %s num: %s" % (g.mbox['name'], len(ms))
 
         head = None
         node.append(frainui.Leaf('', None, None))
@@ -261,8 +268,16 @@ class MailList(object):
 
             name = os.path.basename(m.path)
 
-            l = frainui.Leaf(name, m, self.fm_mail_handle, display = s, last_win=True)
+            l = frainui.Leaf(name, m, self.mail_show, display = s, last_win=True)
             node.append(l)
+
+    def list_handler(self, node, listwin):
+        mbox = fm.Mbox(g.mbox['path'], g.thread)
+        if mbox.thread_show:
+            self.list_thread(mbox, node)
+        else:
+            self.list_plain(mbox, node)
+
 
 def MailDel():
     node = g.ui_list.getnode()
