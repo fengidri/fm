@@ -38,7 +38,8 @@ class Db(object):
                    path        TEXT NOT NULL,
                    fold        BOOL default 0,
                    flag        INT  default 0,
-                   ts          INT  default 0
+                   ts          INT  default 0,
+                   miss_upper  BOOL default 0
                    );'''
 
         r = c.execute(cmd_table)
@@ -95,7 +96,7 @@ class Db(object):
             '{in_reply_to}',
             "{attach_n}",
             "{size}",
-            "{path}"
+            "{path}",
              {ts}
             )
         '''
@@ -176,6 +177,12 @@ class Db(object):
 
     def set_flag(self, rowid, v):
         cmd = 'update FMIndex set flag=%s where rowid=%s' %  (v, rowid)
+        self._exec(cmd)
+        self.conn.commit()
+        return self.c.rowcount
+
+    def set_miss_upper(self, rowid):
+        cmd = 'update FMIndex set miss_upper=1 where rowid=%s' %  rowid
         self._exec(cmd)
         self.conn.commit()
         return self.c.rowcount

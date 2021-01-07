@@ -21,6 +21,8 @@ class Mbox(object):
         self.isbuiltin = False
         self.thread_show = thread
         self.topics = []
+        self.num = 0
+        self.marked_n = 0
 
         if os.path.basename(dirname) == 'Sent':
             self.isbuiltin = True
@@ -78,8 +80,14 @@ class Mbox(object):
             self.find_upper(p)
             return
 
+        if m.miss_upper:
+            self.top_mail(m)
+            return
+
         t = mail.mail_db_msgid(r)
         if not t:
+            if time.time() - m.ts > 3600 * 24 * 5:
+                m.set_miss_upper()
             self.top_mail(m)
             return
 
@@ -107,8 +115,11 @@ class Mbox(object):
                 topic_map[tp] = topic
                 topic_list.append(topic)
 
+
         for tp in self.topics:
             tp.thread()
+            self.num += len(tp.mails)
+            self.marked_n += tp.marked_n
 
         self.topics = topic_list
         self.topics.sort(key = lambda x: x.timestamp(), reverse=True)

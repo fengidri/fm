@@ -158,6 +158,7 @@ class Topic(object):
         self.tops = []
 
         self.topics = []
+        self.marked_n = 0
 
     def append(self, m):
         if m.path in self.paths:
@@ -168,6 +169,8 @@ class Topic(object):
 
         self.mails.append(m)
         self.paths.append(m.path)
+        if m.flag:
+            self.marked_n += 1
         return True
 
     def done(self):
@@ -567,7 +570,8 @@ class MailFromDb(M):
         self.fold        = record[13]
         self.flag        = record[14]
         self.ts          = record[15]
-        self.rowid       = record[16]
+        self.miss_upper  = record[16]
+        self.rowid       = record[17]
 
         self.index = 0
 
@@ -623,6 +627,9 @@ class MailFromDb(M):
 
     def set_flag(self, flag):
         db.set_flag(self.rowid, flag)
+
+    def set_miss_upper(self):
+        db.set_miss_upper(self.rowid)
 
 
 def mail_db_mbox(mbox):
