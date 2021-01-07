@@ -8,6 +8,7 @@ import os
 import email
 import email.utils
 import vgit.options
+import popup
 
 def reply_copy_header(mail, header):
     v = mail.header(header)
@@ -215,21 +216,24 @@ def reply():
         b.append('> ' + line.replace('\r', ''))
 
 
+def mail_send_handler(popup, path):
+    popup.append("mail path: %s" % path)
+    ret = fm.sendmail(popup, path)
 
+    if ret:
+        popup.append('send success')
+        vim.command('set buftype=nofile')
+        return
+
+    popup.append('send fail')
 
 def MailSend():
     vim.command("update")
 
     path = vim.current.buffer.name
 
-    ret = fm.sendmail(path)
+    popup.PopupRun(mail_send_handler, path, title= 'FM Send Mail')
 
-    if ret:
-        vim.command('set buftype=nofile')
-        pyvim.echo('send success')
-        return
-
-    pyvim.echo('send fail')
 
 def MailHeader():
     g.header_raw = not g.header_raw

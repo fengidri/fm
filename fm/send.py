@@ -66,9 +66,7 @@ def sendmail_imap(path):
     smtp.login(conf.user, conf.password)
     smtp.sendmail(from_, to, msg.as_string())
 
-
-
-def sendmail_msmtp(path):
+def sendmail_msmtp(popup, path):
     msg, from_, to = file_to_message(path)
 
 #    c = bytes(cstr, encoding='utf8')
@@ -77,29 +75,13 @@ def sendmail_msmtp(path):
     cmd = ['msmtp', '-i']
     cmd.extend(to)
 
-    print("email path: %s" % path)
-    print(" ".join(cmd))
+    return popup.run(cmd, c)
 
-    p = subprocess.Popen(cmd,
-            stdin = subprocess.PIPE,
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE)
-
-    stdout, stderr = p.communicate(c)
-
-    code = p.returncode
-    if code:
-        print(stdout)
-        print(stderr)
-    return code
-
-
-
-def sendmail(path, imap = False):
+def sendmail(popup, path, imap = False):
     if imap:
         sendmail_imap(path)
     else:
-        code = sendmail_msmtp(path)
+        code = sendmail_msmtp(popup, path)
         if code:
             return
 
