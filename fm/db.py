@@ -37,7 +37,8 @@ class Db(object):
                    size        INT  default 0,
                    path        TEXT NOT NULL,
                    fold        BOOL default 0,
-                   flag        INT  default 0
+                   flag        INT  default 0,
+                   ts          INT  default 0
                    );'''
 
         r = c.execute(cmd_table)
@@ -65,12 +66,39 @@ class Db(object):
         self.conn.commit()
 
     def insert_mail(self, mbox, m):
-        cmd = '''insert into FMIndex ("mbox", "status", "sub_n",
-                                      "subject", "date", "to", "from", "cc", "msgid", "in_reply_to",
-                                      "attach_n", "size", "path")
-                               values("{mbox}", {status}, {sub_n}, '{subject}',
-                                      "{date}", '{to}', '{From}', '{cc}', "{msgid}",
-                                      '{in_reply_to}', "{attach_n}", "{size}", "{path}")'''
+        cmd = '''insert into FMIndex (
+            "mbox",
+            "status",
+            "sub_n",
+            "subject",
+            "date",
+            "to",
+            "from",
+            "cc",
+            "msgid",
+            "in_reply_to",
+            "attach_n",
+            "size",
+            "path",
+            "ts")
+
+        values(
+            "{mbox}",
+             {status},
+             {sub_n},
+            '{subject}',
+            "{date}",
+            '{to}',
+            '{From}',
+            '{cc}',
+            "{msgid}",
+            '{in_reply_to}',
+            "{attach_n}",
+            "{size}",
+            "{path}"
+             {ts}
+            )
+        '''
 
         def h(s):
             if not s:
@@ -100,6 +128,7 @@ class Db(object):
                    attach_n    = len(m.Attachs()),
                    size        = m.size,
                    path        = m.path,
+                   ts          = m.Date_ts(),
                    )
         return self._exec(cmd)
 

@@ -539,6 +539,8 @@ class Mail(M):
 
     def Date_ts(self):
         d = email.utils.parsedate_tz(self.Date())
+        if not d:
+            return 0
         return email.utils.mktime_tz(d)
 
     def db_insert(self, mbox):
@@ -564,7 +566,8 @@ class MailFromDb(M):
         self.path        = record[12]
         self.fold        = record[13]
         self.flag        = record[14]
-        self.rowid       = record[15]
+        self.ts          = record[15]
+        self.rowid       = record[16]
 
         self.index = 0
 
@@ -596,10 +599,7 @@ class MailFromDb(M):
         return EmailAddrLine(self.cc)
 
     def Date_ts(self):
-        d = email.utils.parsedate_tz(self.Date())
-        if not d:
-            return 0
-        return email.utils.mktime_tz(d)
+        return self.ts
 
     def delete(self):
         return db.del_mail(self)
