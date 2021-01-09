@@ -41,11 +41,16 @@ def menu(m):
     def finish(index):
         if index < 0:
             return
+
         h = handler[index]
         if not h:
             return
 
-        h()
+        item = m[index]
+        if len(item) == 3:
+            h(item[2])
+        else:
+            h()
 
     popup.PopupMenu(keys, finish)
 

@@ -1,11 +1,13 @@
 import os
 import time
 import logging
+
 from . import db
 from . import send
 from . import syncmail
 from . import conf
 from . import mail
+from . import topic
 
 Mail = mail.Mail
 
@@ -14,115 +16,28 @@ conf = conf.conf
 sendmail = send.sendmail
 
 class Mbox(object):
-    def __init__(self, dirname, thread = True):
+    def __init__(self, mbox, thread = True, preload = 0):
+        mbox = os.path.basename(mbox)
+
         self.top = []
-        self.mail_map = {}
-        self.mail_list = []
         self.isbuiltin = False
         self.thread_show = thread
         self.topics = []
-        self.num = 0
-        self.marked_n = 0
 
-        if os.path.basename(dirname) == 'Sent':
+        if mbox == 'Sent':
             self.isbuiltin = True
             self.thread_show = False
 
-        self.mbox = os.path.basename(dirname)
+        self.mbox = mbox
 
-        s = time.time()
         if self.thread_show:
-            self.load_db()
-            self.thread()
+            self.topics = topic.db_load_topic(mbox)
+            self.topics.sort(key = lambda x: x.timestamp(), reverse = True)
+            if preload:
+                topic.batch_load(self.topics[0:preload])
         else:
-            self.top = mail.mail_db_mbox(self.mbox)
-            self.top.sort(key = lambda x: x.last_recv_ts())
-
-        db.db.commit()
-
-        print("load thread: %s" % (time.time() -s))
-
-    def load_db(self):
-        mails = mail.mail_db_mbox(self.mbox)
-        for m in mails:
-            msgid = m.Message_id()
-            l = self.mail_map.get(msgid)
-            if l:
-                l.append(m)
-            else:
-                self.mail_map[msgid] = m
-                self.mail_list.append(m)
-
-    def top_mail(self, m):
-        self.top.append(m)
-        if not m.topic:
-            m.topic = mail.Topic()
-            m.topic.mails.append(m)
-            m.topic.default_top = m
-
-        m.topic.mbox = self.mbox
-
-        self.topics.append(m.topic)
-
-    def find_upper(self, m):
-        if m.parent or m in self.top:
-            return
-
-        r = m.In_reply_to()
-        msgid = m.Message_id()
-        if not r or r == msgid:
-            self.top_mail(m)
-            return
-
-        p = self.mail_map.get(r)
-        if p:
-            p.append(m)
-            self.find_upper(p)
-            return
-
-        if m.miss_upper:
-            self.top_mail(m)
-            return
-
-        t = mail.mail_db_msgid(r)
-        if not t:
-            if time.time() - m.ts > 3600 * 24 * 5:
-                m.set_miss_upper()
-            self.top_mail(m)
-            return
-
-        t.copy(self.mbox)
-
-        self.mail_map[t.Message_id()] = t
-        t.append(m)
-        self.find_upper(t)
-
-
-    def thread(self):
-        for m in self.mail_list:
-            self.find_upper(m)
-
-        topic_map = {}
-        topic_list = []
-
-        for topic in self.topics:
-            topic.done()
-            tp = topic.topic()
-            one = topic_map.get(tp)
-            if one:
-                one.marge(topic)
-            else:
-                topic_map[tp] = topic
-                topic_list.append(topic)
-
-
-        for tp in self.topics:
-            tp.thread()
-            self.num += len(tp.mails)
-            self.marked_n += tp.marked_n
-
-        self.topics = topic_list
-        self.topics.sort(key = lambda x: x.timestamp(), reverse=True)
+            self.top = db.index.filter(mbox = mbox).select()
+            self.top.sort(key = lambda x: x.Date_ts())
 
     def get_topics(self):
         return self.topics

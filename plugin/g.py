@@ -12,3 +12,4 @@ pager_mail           = None
 mbox                 = None
 config_short_time    = True
 config_relative_time = True
+exts                = False # mail list exts

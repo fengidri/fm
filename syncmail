@@ -25,11 +25,7 @@ if args.loop:
 
         print("%s syncmail..." % t)
 
-        try:
-            main()
-        except Exception as e:
-            traceback.print_stack()
-            print(e)
+        main()
 
         time.sleep(60)
 else:

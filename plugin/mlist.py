@@ -134,12 +134,15 @@ class MailList(object):
         if m == head:
             ext += ' (%d)' % m.num()
 
-        fmt = '{stat} {subject} {_from} {date}'
-        fmt = '{stat} {subject} {date} {ext}'
+        if g.exts:
+            fmt = '{stat} {subject} {date} {ext} {mbox} {rowid} {topic_id}'
+        else:
+            fmt = '{stat} {subject} {date}'
         return fmt.format(stat = stat,
                 subject = subject,
                 _from = f,
-                date = date, ext = ext);
+                date = date, ext = ext, mbox = m.mbox, rowid = m.rowid,
+                topic_id=m.topic_id);
 
     def strline(self, m, head = None):
         return self.strline1(m, head)
@@ -202,6 +205,8 @@ class MailList(object):
 
     def topic_list(self, node, listwin):
         topic = node.ctx
+        topic.load()
+
         ms = topic.output(reverse=True)
 
         leaf_num = 0
@@ -241,20 +246,24 @@ class MailList(object):
 
 
     def list_thread(self, mbox, node):
-        i = 0
-        defopen = True
-        for topic in mbox.get_topics():
-            i += 1
-            if i == 100:
+        topics = mbox.get_topics()
+
+        for topic in topics:
+            if topic.loaded():
+                defopen = True
+            else:
                 defopen = False
 
-            n = frainui.Node(' ' + topic.topic(), topic, self.topic_list,
-                    isdir = False, defopen = defopen)
+            n = frainui.Node(' ' + topic.topic(),
+                    topic,
+                    self.topic_list,
+                    isdir = False,
+                    defopen = defopen)
 
             node.append(n)
 
-        self.ui_list.title = "MBox: %s topic: %s mails: %d marked: %d" % (g.mbox['name'],
-                i, mbox.num, mbox.marked_n)
+#        self.ui_list.title = "MBox: %s topic: %s mails: %d marked: %d" % (g.mbox['name'],
+#                i, mbox.num, mbox.marked_n)
 
     def list_plain(self, mbox, node):
         ms = mbox.output(reverse=True)
@@ -272,7 +281,8 @@ class MailList(object):
             node.append(l)
 
     def list_handler(self, node, listwin):
-        mbox = fm.Mbox(g.mbox['path'], g.thread)
+        mbox = fm.Mbox(g.mbox['path'], g.thread, preload = 100)
+
         if mbox.thread_show:
             self.list_thread(mbox, node)
         else:
@@ -352,8 +362,13 @@ def MailMarkRead():
     if refresh:
         g.maillist.refresh()
 
-def MailThread():
-    g.thread = not g.thread
+def switch_options(target):
+    if target == 'thread':
+        g.thread = not g.thread
+
+    if target == 'exts':
+        g.exts = not g.exts
+
     g.maillist.refresh()
 
 def refresh():
@@ -383,8 +398,9 @@ menu = [
         ("Refresh --- refresh",                       refresh),
         ("Fold    --- fold current thread",           MailFold),
         ("Flag    --- set flag 1",                    MailFlag),
-        ("Thread  --- show by thread or plain",       MailThread),
+        ("Thread  --- show by thread or plain",       switch_options, 'thread'),
         ("Delete  --- delate current mail",           MailDel),
         ("Readed  --- mark the selected mail readed", MailMarkRead),
         ("New     --- create new mail",               MailNew),
+        ("Exts    --- more info",                     switch_options, "exts"),
         ]

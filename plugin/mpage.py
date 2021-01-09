@@ -131,9 +131,9 @@ def _mail_show(mail):
         b.append('')
 
     b.append('=' * 80)
-    b.append('mbox:      %s' % mail.mbox)
-    b.append('sub:       %s' % mail.sub_n)
-    b.append('sub-real:  %s' % len(mail.get_reply()))
+#    b.append('mbox:      %s' % mail.mbox)
+#    b.append('sub:       %s' % mail.sub_n)
+#    b.append('sub-real:  %s' % len(mail.get_reply()))
     b.append('size:      %s' % mail.size)
     b.append('')
     b.append('=%s' % mail.path)
