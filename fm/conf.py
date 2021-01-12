@@ -19,13 +19,18 @@ class Conf:
         j = open(path).read()
         c = json.loads(j)
 
+        self.confd = os.path.expanduser("~/.fm.d")
+
         self.user     = c['user']
         self.server   = c['server']['host']
         self.port     = c['server']['port']
         self.password = c['server']['password']
+        self.folders =  c['server']['folders']
+        self.procmail = os.path.join(self.confd, 'procmail.py')
 
         self.smtp_host = c['smtp']['host']
         self.smtp_port = c['smtp']['port']
+
 
         default = c.get('default')
 

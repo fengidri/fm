@@ -16,121 +16,50 @@ from . import transfermail
 from . import mail
 from . import topic
 from . import db
+from . import conf
 
-class config:
-    confd = os.path.expanduser("~/.fm.d")
-    server   = None
-    port     = None
-    user     = None
-    password = None
-    folders  = None
-    deliver  = None
-    saved    = False
-    procmail = os.path.join(confd, 'procmail.py')
-    transfer =  None
-    gid = 0
+conf = conf.conf
 
-def conf():
-    path = os.path.expanduser("~/.fm.json")
-    c = open(path).read()
-    j = json.loads(c)
+class g:
+    current_total = None
+    gid           = 0
+    saved         = False
+    current_fold = None
 
-    s = j['server']
+def get_path(*ns):
+    ns = list(ns)
+    ns.insert(0, conf.confd)
 
-    config.user     = j['user']
+    root = None
 
-    config.server   = s['host']
-    config.port     = s['port']
-    config.password = s['password']
-    config.folders =  s['folders']
-    config.deliver = os.path.expanduser(j['deliver'])
+    for n in ns[0:-1]:
+        if root:
+            n = os.path.join(root, n)
 
+        if not os.path.isdir(n):
+            os.mkdir()
 
-    queue = get_dir('sendq')
-    sent = get_dir('sent')
-    config.transfer = transfermail.TransferMail(queue, sent)
+        root = n
 
-
-def get_dir(name):
-    path = os.path.join(config.confd, name)
-    if not os.path.isdir(path):
-        os.mkdir(path)
-
-    return path
-
-
-def sync(conn, fold, last, callback):
-    typ, [data] = conn.select('"%s"' % fold)
-    if typ != 'OK':
-        print("select to folder: %s. fail" % fold)
-        sys.exit(-1)
-
-
-    config.current_total = data.decode('utf8')
-
-    typ, [data] = conn.uid('search', None, 'ALL')
-    ids = data.split()
-
-    ii = 0;
-    for i in ids:
-        i = int(i)
-
-        if i <= last:
-            ii += 1
-            continue
-
-        break
-
-    #print(">> %-10s: search %s. total: %s. last: %s download: %s " % (fold, typ,
-    #    config.current_total, last, len(ids) - ii))
-
-    for i in ids[ii:]:
-        resp, data = conn.uid('fetch', i, '(RFC822)')
-        callback(data)
+    return os.path.join(root, ns[-1])
 
 def get_last_uid():
-    fold = config.current_fold
-    if not os.path.isdir(config.confd):
+    path = get_path(conf.user, g.current_fold, 'uid')
+
+    if not os.path.isfile(path):
         return -1
 
-    t = os.path.join(config.confd, config.user)
-    if not os.path.isdir(t):
-        return -1
-
-    t = os.path.join(t, fold)
-    if not os.path.isdir(t):
-        return -1
-
-    t = os.path.join(t, 'uid')
-    if not os.path.isfile(t):
-        return -1
-
-    uid = open(t).read()
+    uid = open(path).read()
     return int(uid)
 
 
 def save_uid(uid):
-    fold = config.current_fold
-    if not os.path.isdir(config.confd):
-        os.mkdir(config.confd)
+    path = get_path(conf.user, g.current_fold, 'uid')
 
-    t = os.path.join(config.confd, config.user)
-    if not os.path.isdir(t):
-        os.mkdir(t)
-
-    t = os.path.join(t, fold)
-    if not os.path.isdir(t):
-        os.mkdir(t)
-
-    t = os.path.join(t, 'uid')
-    open(t, 'w').write(uid)
+    open(path, 'w').write(uid)
 
 def save_last_check():
-    t = os.path.join(config.confd, config.user)
-    if not os.path.isdir(t):
-        os.mkdir(t)
-
-    path = os.path.join(t, 'last_check')
+    path = get_path(conf.user, 'last_check')
     open(path, 'w').write(str(time.time()))
 
 
@@ -163,8 +92,6 @@ def check_mail_need_merge(mails):
     return topic_id
 
 def save_mail_to_db(path, mbox, delay = False):
-    db.set_delay()
-
     m = mail.Mail(path)
     m.isnew = True
     m.mbox = mbox # for topic
@@ -178,7 +105,7 @@ def save_mail_to_db(path, mbox, delay = False):
         topic_id = check_mail_need_merge(mails)
 
         # 新邮件也使用这个 topic_id
-        db.index.insert(m, mbox, topic_id)
+        rowid = db.index.insert(m, mbox, topic_id)
 
         # 检查当前的 mbox 有没有对应的 topic
         if mbox != 'Sent':
@@ -200,24 +127,22 @@ def save_mail_to_db(path, mbox, delay = False):
         if not topic_id:
             topic_id = db.topic.insert(tp)
 
-        db.index.insert(m, mbox, topic_id)
-
-    if delay:
-        return
+        rowid = db.index.insert(m, mbox, topic_id)
 
     db.commit()
+    return rowid, topic_id
 
 
-def save_mail(dirname, mail, Id, uid):
+def save_mail(fold, dirname, mail, Id, uid):
     uid = uid.decode('utf8')
     Id = int(Id)
 
-    config.gid += 1
+    g.gid += 1
 
     # save mail to file
-    filename = "%s-%s-%s.mail" % (uid, time.time(), config.gid)
+    filename = "%s-%s-%s.mail" % (uid, time.time(), g.gid)
 
-    path = os.path.join(config.deliver, dirname)
+    path = os.path.join(conf.deliver, dirname)
     if not os.path.isdir(path):
         os.mkdir(path)
 
@@ -227,23 +152,24 @@ def save_mail(dirname, mail, Id, uid):
 
     # save mail to db
     start = time.time()
-    save_mail_to_db(path, dirname)
+    rowid, topic_id = save_mail_to_db(path, dirname)
     end = time.time()
 
     # save uid
     save_uid(uid)
 
-    config.saved = True
+    g.saved = True
 
     # for log
     m = email.message_from_bytes(mail)
 
     s = m.get("Subject", '').replace('\n', ' ').replace('\r', '')
-    print("  [save %s/%s to %s] %s. -- %s" % (Id, config.current_total, dirname, s, end - start))
+    print("save %s:%s/%s to %s(rowid: %d topic_id: %d) %.3fs. %s" % (fold, Id,
+        g.current_total, dirname, rowid, topic_id,  end - start, s))
 
 
 def procmail(mail):
-    cmd = ['python2', config.procmail]
+    cmd = ['python2', conf.procmail]
 
     p = subprocess.Popen(cmd, stdin = subprocess.PIPE, stdout=subprocess.PIPE)
     stdout, stderr = p.communicate(mail)
@@ -258,16 +184,8 @@ def procmail(mail):
 
     return o
 
-def tfmail(mail, d):
-    m = email.message_from_string(mail)
-    m.add_header("Resent-To", d)
 
-    mail = m.as_string()
-
-    config.transfer.append(mail)
-
-
-def procmails(maillist):
+def procmails(fold, maillist):
     for mail in maillist:
         if mail == b')':
             continue
@@ -283,13 +201,12 @@ def procmails(maillist):
                 if not d:
                     continue
 
-    #            tfmail(mail, d)
                 continue
 
-            save_mail(d, mail, Id, uid)
+            save_mail(fold, d, mail, Id, uid)
 
 
-def procmails_builin(maillist):
+def procmails_builin(fold, maillist):
     for mail in maillist:
         if mail == b')':
             continue
@@ -298,12 +215,38 @@ def procmails_builin(maillist):
         uid = mail[0].split()[2]
         mail = mail[1]
 
-        d = config.current_fold
-        save_mail(d, mail, Id, uid)
+        d = g.current_fold
+        save_mail(fold, d, mail, Id, uid)
+
+def sync(conn, fold, last, callback):
+    typ, [data] = conn.select('"%s"' % fold)
+    if typ != 'OK':
+        print("select to folder: %s. fail" % fold)
+        sys.exit(-1)
+
+
+    g.current_total = data.decode('utf8')
+
+    typ, [data] = conn.uid('search', None, 'ALL')
+    ids = data.split()
+
+    ii = 0;
+    for i in ids:
+        i = int(i)
+
+        if i <= last:
+            ii += 1
+            continue
+
+        break
+
+
+    for i in ids[ii:]:
+        resp, data = conn.uid('fetch', i, '(RFC822)')
+        callback(fold, data)
+
 
 def rebuild_db():
-    conf()
-
     start = time.time()
     i = 0
 
@@ -314,11 +257,11 @@ def rebuild_db():
         save_mail_to_db(path, d, delay = True)
 
 
-    dirs = os.listdir(config.deliver)
+    dirs = os.listdir(conf.deliver)
     for d in dirs:
         if d[0] == '.':
             continue
-        dirpath = os.path.join(config.deliver, d)
+        dirpath = os.path.join(conf.deliver, d)
         for f in os.listdir(dirpath):
             if f[0] == '.':
                 continue
@@ -340,25 +283,22 @@ def rebuild_db():
 
 
 def main():
-    conf()
+    conn = imaplib.IMAP4_SSL(host = conf.server, port = conf.port)
 
-    conn = imaplib.IMAP4_SSL(host = config.server, port = config.port)
-    print("Mail: %s" % config.user)
-
-    typ, [data] = conn.login(config.user, config.password)
+    typ, [data] = conn.login(conf.user, conf.password)
     if typ != 'OK':
         print("login fail" % fold)
         return
 
-    for fold in config.folders:
-        config.current_fold = fold
+    for fold in conf.folders:
+        g.current_fold = fold
 
         last = get_last_uid()
 
         sync(conn, fold, last, procmails)
 
     fold = 'Sent'
-    config.current_fold = fold
+    g.current_fold = fold
     last = get_last_uid()
     sync(conn, fold, last, procmails_builin)
 
