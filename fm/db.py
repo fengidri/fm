@@ -104,11 +104,16 @@ class Topic(db_driver.Table):
         cmd = sql.insert_format(self.table)
 
         db._exec(cmd)
+        self.db.conn.commit()
 
-        rowid = self.db.last_rowid()
+        if id == None:
+            rowid = self.db.last_rowid()
 
-        self.filter(rowid = rowid).update(id = rowid)
-        return rowid
+            self.filter(rowid = rowid).update(id = rowid)
+
+            return rowid
+        else:
+            return id
 
     def sel_handle(self, ret):
         ms = []
@@ -205,7 +210,9 @@ class Index(db_driver.Table):
 
         cmd = sql.insert_format('FMIndex')
 
-        return db._exec(cmd)
+        db._exec(cmd)
+        self.db.conn.commit()
+        return self.db.last_rowid()
 
 
 def commit():
