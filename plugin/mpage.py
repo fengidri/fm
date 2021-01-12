@@ -234,33 +234,23 @@ def MailSend():
 
     popup.PopupRun(mail_send_handler, path, title= 'FM Send Mail')
 
-
-def MailHeader():
-    g.header_raw = not g.header_raw
+def switch_options(target):
+    if target == 'header':
+        g.header_raw = not g.header_raw
+    elif target == 'filter':
+        g.header_filter = not g.header_filter
+    else:
+        return
 
     if g.pager_buf != vim.current.buffer:
         return
 
     show(g.pager_mail)
 
-def MailFilter():
-    g.header_filter = not g.header_filter
-
-    if g.pager_buf != vim.current.buffer:
-        return
-
-    show(g.pager_mail)
-
-
-def MailAck():
+def reply_by(h):
     b = vim.current.buffer
     l = vim.current.window.cursor[0] - 1
-    b[l] = 'Acked-by: %s <%s>' % (fm.conf.name, fm.conf.me)
-
-def MailReview():
-    b = vim.current.buffer
-    l = vim.current.window.cursor[0] - 1
-    b[l] = 'Reviewed-by: %s <%s>' % (fm.conf.name, fm.conf.me)
+    b[l] = '%s: %s <%s>' % (h, fm.conf.name, fm.conf.me)
 
 def mail_git_append():
     m = current_mail()
@@ -273,11 +263,16 @@ def mail_git_append():
     vgit.options.commit_log_append(line, target = subject)
 
 menu = [
-            ("Reply(R)   --- reply this mail",    reply),
-            ("Header(H)  --- show raw headers",   MailHeader),
-            ("Filter     --- show other headers", MailFilter),
-            ("Send       --- send this mail",     MailSend),
-            ("Ack        --- add Acked-By",       MailAck),
-            ("Review     --- add Reviewed-By ",   MailReview),
-            ("Git Append --- git commit log append",   mail_git_append),
+            ("Reply ...",                   reply),
+            ("---------------------------", None),
+            ("Set Line Acked-By",           reply_by, 'Acked-by'),
+            ("Set Line Reviewed-By ",       reply_by, 'Reviewed-by'),
+            ("---------------------------", None),
+            ("Show raw headers",            switch_options, 'header'),
+            ("Show other headers",          switch_options, 'filter'),
+            ("---------------------------", None),
+            ("Send ...",                    MailSend),
+            ("---------------------------", None),
+            ("GIT Commit log append",       mail_git_append),
+            ("---------------------------", None),
             ]

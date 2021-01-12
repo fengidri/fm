@@ -198,11 +198,19 @@ class Topic(object):
 
         return tp
 
+    def delete(self):
+        db.topic.filter(id = self.db.id).delete()
+
     def timestamp(self):
-        if self.db == None:
-            return max([x.last_recv_ts() for x in self.tops])
+        if self.tops:
+            tops = self.tops
+
+        elif self.db and self.db.loaded and self.db.tops:
+            tops = self.db.tops
         else:
             return self.db.last_ts
+
+        return max([x.last_recv_ts() for x in tops])
 
     def output(self, reverse = False):
         top = self.db.tops
@@ -218,4 +226,9 @@ class Topic(object):
 
         return o
 
+    def merge(self, fr):
+        topic_merge(self.db.id, fr)
+
+    def get_id(self):
+        return self.db.id
 

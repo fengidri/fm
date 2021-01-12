@@ -33,32 +33,11 @@ def Mail():
     if g.default:
         g.default.node_open()
 
-
-
-def menu(m):
-    keys, handler = zip(*m)
-
-    def finish(index):
-        if index < 0:
-            return
-
-        h = handler[index]
-        if not h:
-            return
-
-        item = m[index]
-        if len(item) == 3:
-            h(item[2])
-        else:
-            h()
-
-    popup.PopupMenu(keys, finish)
-
 @pyvim.cmd()
 def MailMenu():
-    menu(mlist.menu)
+    popup.PopupMenu(mlist.menu)
 
 
 @pyvim.cmd()
 def MailPageMenu():
-    menu(mpage.menu)
+    popup.PopupMenu(mpage.menu)

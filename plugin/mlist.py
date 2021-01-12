@@ -117,8 +117,10 @@ class MailList(object):
                 f = 'Me'
 
             subject = f
+            follow_from = False
         else:
             subject =  m.Subject().strip()
+            follow_from = True
 
         if m.parent:
             i1 = m.parent.index * '|   '
@@ -128,7 +130,15 @@ class MailList(object):
         if m.fold:
             subject += ' ......'
 
-        subject = subject.ljust(90)[0:90]
+        l = 90
+        if follow_from:
+            l -= len(m.From().short) + 4
+
+        subject = subject.ljust(l)[0:l]
+
+        if follow_from:
+            subject += '    '
+            subject += m.From().short
 
         ext = ''
         if m == head:
@@ -207,6 +217,8 @@ class MailList(object):
         topic = node.ctx
         topic.load()
 
+        g.topic_opend.append(topic.get_id())
+
         ms = topic.output(reverse=True)
 
         leaf_num = 0
@@ -253,17 +265,26 @@ class MailList(object):
                 defopen = True
             else:
                 defopen = False
+                if topic.get_id() in g.topic_opend:
+                    defopen = True
 
-            n = frainui.Node(' ' + topic.topic(),
-                    topic,
-                    self.topic_list,
-                    isdir = False,
-                    defopen = defopen)
+            if topic.get_id() in g.stash:
+                prefix = ' @'
+            else:
+                prefix = ' '
+
+            line = prefix + topic.topic()
+
+            if g.exts:
+                e = ' id: %d' % topic.get_id()
+                line += e
+
+            n = frainui.Node(line, topic, self.topic_list, isdir = False, defopen = defopen)
 
             node.append(n)
 
-#        self.ui_list.title = "MBox: %s topic: %s mails: %d marked: %d" % (g.mbox['name'],
-#                i, mbox.num, mbox.marked_n)
+        self.ui_list.title = "MBox: %s topic: %s stash: %s" % (
+                g.mbox['name'], len(topics), len(g.stash))
 
     def list_plain(self, mbox, node):
         ms = mbox.output(reverse=True)
@@ -289,48 +310,37 @@ class MailList(object):
             self.list_plain(mbox, node)
 
 
+def get_node(i = None):
+    node = g.ui_list.getnode(i)
+    if not node:
+        return
+
+    if not node.ctx:
+        return
+
+    return node, node.ctx
+
+
 def MailDel():
-    node = g.ui_list.getnode()
-    if not node:
-        return
+    node, obj = get_node()
 
-    if not node.ctx:
-        return
+    # obj may be topic
 
-    if not isinstance(node, frainui.Leaf):
-        return
+    obj.delete()
 
-    mail = node.ctx
-    mail.delete()
-    node.update(' ')
-
-def MailFold():
-    node = g.ui_list.getnode()
-    if not node:
-        return
-
-    if not node.ctx:
-        return
-
-    if not isinstance(node, frainui.Leaf):
-        return
-
-    mail = node.ctx
-    mail.set_fold()
     g.maillist.refresh()
 
-def MailFlag():
-    node = g.ui_list.getnode()
-    if not node:
-        return
+def MailFold():
+    node, mail = get_node()
 
     mail.mark_readed(True)
     mail.set_fold()
 
-    if not isinstance(node, frainui.Leaf):
-        return
+    g.maillist.refresh()
 
-    mail = node.ctx
+def MailFlag():
+    node, mail = get_node()
+
     if mail.flag:
         mail.set_flag(0)
     else:

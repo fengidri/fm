@@ -23,8 +23,6 @@ if args.loop:
     while True:
         t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
-        print("%s syncmail..." % t)
-
         main()
 
         time.sleep(60)
