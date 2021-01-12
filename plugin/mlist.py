@@ -324,8 +324,8 @@ def MailFlag():
     if not node:
         return
 
-    if not node.ctx:
-        return
+    mail.mark_readed(True)
+    mail.set_fold()
 
     if not isinstance(node, frainui.Leaf):
         return
@@ -337,27 +337,31 @@ def MailFlag():
         mail.set_flag(1)
     g.maillist.refresh()
 
-def MailMarkRead():
-    start, end = pyvim.selectpos()
-    start = start[0]
-    end = end[0]
 
+def set_read(i, thread = False):
+    node, mail = get_node(i)
+    mail.mark_readed(thread)
+    return True
+
+def MailMarkRead(cls):
     refresh = False
+    if cls == 'sel':
+        start, end = pyvim.selectpos()
+        start = start[0]
+        end = end[0]
 
-    for i in range(start, end + 1):
-        node = g.ui_list.getnode(i)
-        if not node:
-            continue
 
-        if not node.ctx:
-            continue
+        for i in range(start, end + 1):
+            set_read(i)
+            refresh = True
 
-        if not isinstance(node, frainui.Leaf):
-            continue
+    if cls == 'one':
+        l,c = vim.current.window.cursor
+        refresh = set_read(l - 1)
 
-        mail = node.ctx
-        mail.mark_readed()
-        refresh = True
+    if cls == 'thread':
+        l,c = vim.current.window.cursor
+        refresh = set_read(l - 1, True)
 
     if refresh:
         g.maillist.refresh()
