@@ -13,3 +13,6 @@ mbox                 = None
 config_short_time    = True
 config_relative_time = True
 exts                = False # mail list exts
+stash                = []
+topic_opend         = []
+topic_close         = []

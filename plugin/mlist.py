@@ -398,13 +398,42 @@ def MailNew():
     b.append('')
     b.append('')
 
+
+def push_to_stash():
+    node, obj = get_node()
+    g.stash.append(obj.get_id())
+    g.maillist.refresh()
+
+def clear_stash():
+    g.stash = []
+    g.maillist.refresh()
+
+def merge_topic():
+    node, obj = get_node()
+
+    obj.merge(g.stash)
+
+    g.maillist.refresh()
+    g.stash = []
+
+
 menu = [
-        ("Refresh --- refresh",                       refresh),
-        ("Fold    --- fold current thread",           MailFold),
-        ("Flag    --- set flag 1",                    MailFlag),
-        ("Thread  --- show by thread or plain",       switch_options, 'thread'),
-        ("Delete  --- delate current mail",           MailDel),
-        ("Readed  --- mark the selected mail readed", MailMarkRead),
-        ("New     --- create new mail",               MailNew),
-        ("Exts    --- more info",                     switch_options, "exts"),
+        ("Refresh",                     refresh),
+        ("---------------------------", None),
+        ("Fold Current thread",         MailFold),
+        ("Mark Current Readed",         MailMarkRead, 'one'),
+        ("Mark Thread Readed",          MailMarkRead, 'thread'),
+        ("Set Flag",                    MailFlag),
+        ("---------------------------", None),
+        ("Sort By Thread or Plain",     switch_options, 'thread'),
+        ("---------------------------", None),
+        ("Create New Mail",             MailNew),
+        ("---------------------------", None),
+        ("More info",                   switch_options, "exts"),
+        ("---------------------------", None),
+        ("Delate Current Mail",         MailDel),
+        ("---------------------------", None),
+        ("Push to stash",               push_to_stash),
+        ("Clear stash",                 clear_stash),
+        ("Merge Topic",                 merge_topic),
         ]
