@@ -129,6 +129,8 @@ def save_mail_to_db(path, mbox, delay = False):
 
         rowid = db.index.insert(m, mbox, topic_id)
 
+    db.topic.filter(id = topic_id).update(last_ts = m.Date_ts())
+
     db.commit()
     return rowid, topic_id
 
