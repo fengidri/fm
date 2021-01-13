@@ -60,23 +60,26 @@ class MailList(object):
             if not m.parent:
                 date = time.strftime("%m-%d %H:%M", time.localtime(date))
             else:
-                f = time.localtime(m.thread_head.Date_ts())
-                d = time.localtime(date)
-                hm = time.strftime("%H:%M", d)
-
-                f1 = datetime.datetime(f.tm_year, f.tm_mon, f.tm_mday)
-                d1 = datetime.datetime(d.tm_year, d.tm_mon, d.tm_mday)
-
-                day = (d1 - f1).days
-
-                if day:
-                    date = '+%d %s' % (day, hm)
+                ts = time.time() - date
+                if ts < 3600 * 36:
+                    date = '-%dH' % (ts / 3600)
                 else:
-                    date = hm
+
+                    f = time.localtime(m.thread_head.Date_ts())
+                    d = time.localtime(date)
+                    hm = time.strftime("%H:%M", d)
+
+                    f1 = datetime.datetime(f.tm_year, f.tm_mon, f.tm_mday)
+                    d1 = datetime.datetime(d.tm_year, d.tm_mon, d.tm_mday)
+
+                    day = (d1 - f1).days
+
+                    if day:
+                        date = '+%d %s' % (day, hm)
+                    else:
+                        date = hm
 
                 date = date.rjust(len('01-01 00:00'))
-
-
 
         elif g.config_short_time:
             now = time.time()
@@ -93,10 +96,13 @@ class MailList(object):
         return date
 
     def strline1(self, m, head = None):
-        if m.isnew:
+        if m.isnew and not m.From().isme:
             stat = '*'
         else:
-            stat = ' '
+            if time.time() - m.Date_ts() < 3600 * 36:
+                stat = '#'
+            else:
+                stat = ' '
 
         if m.flag:
             stat += '⚑'
@@ -116,29 +122,37 @@ class MailList(object):
             else:
                 f = 'Me'
 
+            From = ''
             subject = f
-            follow_from = False
         else:
             subject =  m.Subject().strip()
-            follow_from = True
+            From = m.From().short
 
         if m.parent:
             i1 = m.parent.index * '|   '
             prefix = '%s|---' %(i1, )
             subject = prefix + subject
 
-        if m.fold:
-            subject += ' ......'
-
         l = 90
-        if follow_from:
-            l -= len(m.From().short) + 4
 
-        subject = subject.ljust(l)[0:l]
+        if m.fold:
+            suffix = ' ......'
+            l = l - len(suffix)
+            if len(subject) > l:
+                subject = subject[0: l]
+            else:
+                subject = subject.ljust(l)
 
-        if follow_from:
-            subject += '    '
-            subject += m.From().short
+            subject += suffix
+
+        else:
+            if len(subject) >= l:
+                suffix = '...'
+                subject = subject[0:l - len(suffix)]
+                subject += suffix
+            else:
+                subject = subject.ljust(l)
+
 
         ext = ''
         if m == head:
@@ -147,10 +161,10 @@ class MailList(object):
         if g.exts:
             fmt = '{stat} {subject} {date} {ext} {mbox} {rowid} {topic_id}'
         else:
-            fmt = '{stat} {subject} {date}'
+            fmt = '{stat} {subject} {date} {From}'
         return fmt.format(stat = stat,
                 subject = subject,
-                _from = f,
+                From = From,
                 date = date, ext = ext, mbox = m.mbox, rowid = m.rowid,
                 topic_id=m.topic_id);
 

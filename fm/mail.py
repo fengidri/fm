@@ -54,6 +54,7 @@ class EmailAddr(object):
         self.alias  = ''
         self.short  = ''
         self.addr   = ''
+        self.isme   = False
 
         addr = addr.strip()
 
@@ -76,7 +77,8 @@ class EmailAddr(object):
             self.server = ''
 
         if self.addr == conf.me:
-            self.short = ''
+            self.short = 'Me'
+            self.isme = True
         else:
             if self.alias:
                 self.short = self.alias

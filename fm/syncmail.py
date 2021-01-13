@@ -112,7 +112,7 @@ def save_mail_to_db(path, mbox, delay = False):
             tps = db.topic.filter(id = topic_id, mbox = mbox).select()
             if len(tps) > 1:
                 for tp in tps[1:]:
-                    db.topic.delete(id = tp.db.id)
+                    db.topic.filter(id = tp.db.id).delete()
             elif len(tps) == 0:
                 tp = topic.Topic(m)
                 db.topic.insert(tp, id = topic_id)
@@ -287,10 +287,16 @@ def rebuild_db():
 def main():
     conn = imaplib.IMAP4_SSL(host = conf.server, port = conf.port)
 
-    typ, [data] = conn.login(conf.user, conf.password)
-    if typ != 'OK':
-        print("login fail" % fold)
-        return
+    while True:
+        try:
+            typ, [data] = conn.login(conf.user, conf.password)
+            if typ != 'OK':
+                print("login fail" % fold)
+                return
+            break
+        except imaplib.error:
+            time.sleep(5)
+            continue
 
     for fold in conf.folders:
         g.current_fold = fold

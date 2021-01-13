@@ -174,12 +174,16 @@ class Topic(object):
         if not self._check_update():
             return
 
-        db.topic.filter(rowid = self.db.id).update(
+        db.topic.filter(id = self.db.id).update(
                 topic    = self.topic(),
                 last_ts  = self.timestamp(),
                 mail_n   = len(self.db.mail_list),
-                thread_n = len(self.db.tops)
-                )
+                thread_n = len(self.db.tops))
+
+        self.db.topic    = self.topic()
+        self.db.last_ts  = self.timestamp()
+        self.db.mail_n   = len(self.db.mail_list),
+        self.db.thread_n = len(self.db.tops)
 
     def topic(self):
         if self.root:
