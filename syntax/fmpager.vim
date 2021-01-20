@@ -31,6 +31,7 @@ syn region PreProc start='\c^From:' end='^[^ \t]'me=e-1,he=e-1,re=s-1
 syn region Special start='\c^Message-Id:' end='^[^ \t]'me=e-1,he=e-1,re=s-1
 syn region Special start='\c^In-Reply-To:' end='^[^ \t]'me=e-1,he=e-1,re=s-1
 
+syntax match Number '=== LAST REPLY ==='
 
 syn match FmDiffDel  '^-.*$'
 syn match FmDiffDel  '> -.*$'lc=2
