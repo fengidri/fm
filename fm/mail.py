@@ -291,8 +291,24 @@ class M(object):
                     return -1
             return d
 
+        title = self.title()
 
-        self.sub_thread.sort(key = functools.cmp_to_key(cmpfun))
+        reply = []
+        sub = []
+        for m in self.sub_thread:
+            if m.is_reply():
+                reply.append(m)
+            else:
+                sub.append(m)
+
+
+        reply.sort(key = functools.cmp_to_key(cmpfun))
+        sub.sort(key = functools.cmp_to_key(cmpfun))
+
+        reply.extend(sub)
+
+        self.sub_thread = reply
+
         self.sub_thread[0].isfirst = True
         self.sub_thread[-1].islast = True
 
