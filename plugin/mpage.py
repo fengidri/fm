@@ -107,9 +107,9 @@ def _mail_show(mail):
         b.append('Date: '    + mail.Date())
 
         align_email_addr(b,
-                'From:', mail.From(),
-                'To:',   mail.To(),
-                'Cc:',   mail.Cc())
+                'From:', mail.From(real = True),
+                'To:',   mail.To(real = True),
+                'Cc:',   mail.Cc(real = True))
 
         b.append('Subject: ' + mail.Subject())
 

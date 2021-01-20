@@ -221,6 +221,10 @@ class M(object):
         h = self.get_mail().get(header, '')
         return decode(h)
 
+    def real_header(self, h):
+        s = self.get_mail().get(h, '')
+        return EmailAddrLine(s)
+
     def Attachs(self):
         b = self.get_mail()
 

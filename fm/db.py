@@ -272,16 +272,22 @@ class MailFromDb(mail.M):
     def Date(self):
         return self.date
 
-    def From(self):
+    def From(self, real = False):
+        if real:
+            return self.real_header('From')[0]
         l = mail.EmailAddrLine(self._from)
         if l:
             return l[0]
         return mail.EmailAddr('')
 
-    def To(self):
+    def To(self, real = False):
+        if real:
+            return self.real_header('To')
         return mail.EmailAddrLine(self.to)
 
-    def Cc(self):
+    def Cc(self, real = False):
+        if real:
+            return self.real_header('Cc')
         return mail.EmailAddrLine(self.cc)
 
     def Date_ts(self):
