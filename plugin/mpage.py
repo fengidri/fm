@@ -262,6 +262,22 @@ def mail_git_append():
     line = vim.current.line
     vgit.options.commit_log_append(line, target = subject)
 
+def link_mail():
+
+    line = vim.current.buffer[-1]
+    if line[0] != '=':
+        return
+
+    path = line[1:]
+
+    link = '/tmp/mail.link'
+    if os.path.islink(link):
+        os.remove(link)
+
+    os.symlink(path, link)
+
+    popup.PopupRun("cat %s|grep '^Subject:'" % link)
+
 menu = [
             ("Reply ...",                   reply),
             ("---------------------------", None),
@@ -274,5 +290,6 @@ menu = [
             ("Send ...",                    MailSend),
             ("---------------------------", None),
             ("GIT Commit log append",       mail_git_append),
+            ("Link mail to /tmp/mail.link", link_mail),
             ("---------------------------", None),
             ]
