@@ -24,5 +24,5 @@ def gen_msgid():
     return "<%s-%s-%s>" % (time.time(), g.msgid, conf.me)
 
 
-
-
+def last_check_ts():
+    return conf.mailbox.last_check
