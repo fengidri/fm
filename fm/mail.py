@@ -244,14 +244,17 @@ class M(object):
 
         return True
 
-    def mark_readed(self, thread = False):
+    def mark_readed(self, thread = False, unread = False):
         if self.isnew:
             self.isnew = False
             db.index.filter(rowid = self.rowid).update(status = 1)
+        elif unread:
+            self.isnew = True
+            db.index.filter(rowid = self.rowid).update(status = 0)
 
         if thread:
             for sub in self.sub_thread:
-                sub.mark_readed(True)
+                sub.mark_readed(True, unread)
 
     def last_recv_ts(self):
         ts = self.Date_ts()
