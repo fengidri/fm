@@ -112,23 +112,21 @@ class MailList(object):
             stat += ' '
 
         date = self.strdate(m)
-        f = ''
+        if time.time() - m.Date_ts() < 3600 * 24:
+            date = token(date, 'time')
 
-        if m.is_reply():
-            f = m.From().short
-            if f != '':
-                f = '%s' % f
+        f = m.From().short
+        if not f:
+            f = 'Me'
 
-            if f:
-                f = '%s' % f
-            else:
-                f = 'Me'
+        f = token(f, 'name')
 
-            From = ''
+        if m.title() == g.last_title and m != m.thread_head and g.thread:
             subject = f
         else:
+            g.last_title = m.title()
             subject =  m.Subject().strip()
-            From = m.From().short
+            subject = '%s: %s' %(f, subject)
 
         if m.parent:
             i1 = m.parent.index * '|   '
@@ -162,12 +160,18 @@ class MailList(object):
 
         if g.exts:
             fmt = '{stat} {subject} {date} {ext} {mbox} {rowid} {topic_id}'
+        elif g.thread:
+            fmt = '{stat} {date} {subject}'
         else:
-            fmt = '{stat} {subject} {date} {From}'
+            fmt = '{stat} {date} {subject} {topic}'
+
         return fmt.format(stat = stat,
                 subject = subject,
-                From = From,
-                date = date, ext = ext, mbox = m.mbox, rowid = m.rowid,
+                date = date,
+                ext = ext,
+                mbox = m.mbox,
+                rowid = m.rowid,
+                topic = '', # TODO
                 topic_id=m.topic_id);
 
     def strline(self, m, head = None):
@@ -219,7 +223,7 @@ class MailList(object):
     def mail_show(self, leaf, listwin):
         mail = leaf.ctx
 
-        if mail.isnew:
+        if g.auto_markreaded and mail.isnew:
             mail.mark_readed()
 
             leaf.update(self.strline(mail))
@@ -266,7 +270,8 @@ class MailList(object):
 
             name = os.path.basename(m.path)
 
-            l = frainui.Leaf(name, m, self.mail_show, display = s, last_win=True)
+            l = frainui.Leaf(name, m, self.mail_show, display = s,
+                    last_win=True, noindent = True)
             leaf_num += 1
             node.append(l)
 
@@ -299,8 +304,7 @@ class MailList(object):
 
             node.append(n)
 
-        self.ui_list.title = "MBox: %s topic: %s stash: %s" % (
-                g.mbox['name'], len(topics), len(g.stash))
+        self.ui_list.title = "MBox: %s topic: %s stash: %s" % (g.mbox['name'], len(topics), len(g.stash))
 
     def list_plain(self, mbox, node):
         ms = mbox.output(reverse=True)
@@ -436,9 +440,18 @@ def push_to_stash():
     node, obj = get_node()
     g.stash.append(obj.get_id())
     g.maillist.refresh()
+    if g.tips:
+        g.tips.close()
+
+    g.stash_info.append(obj.topic())
+
+    g.tips = popup.PopupTips(g.stash_info)
 
 def clear_stash():
     g.stash = []
+    g.stash_info = []
+    g.tips.close()
+
     g.maillist.refresh()
 
 def merge_topic():

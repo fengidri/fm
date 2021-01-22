@@ -34,8 +34,11 @@ def Mail():
         g.default.node_open()
 
 @pyvim.cmd()
-def MailMenu():
-    popup.PopupMenu(mlist.menu)
+def MailMenu(sel = None):
+    if not sel:
+        popup.PopupMenu(mlist.menu)
+    elif sel == 'sort':
+        mlist.switch_options('thread')
 
 
 @pyvim.cmd()

@@ -227,8 +227,8 @@ class Topic(object):
         for m in top:
             m.output(o)
 
-        for m in self.db.left:
-            o.append(m)
+#        for m in self.db.left:
+#            o.append(m)
 
         return o
 
