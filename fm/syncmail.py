@@ -220,7 +220,7 @@ def procmails_builin(fold, maillist):
         d = g.current_fold
         save_mail(fold, d, mail, Id, uid)
 
-def sync(conn, fold, last, callback):
+def do(conn, fold, last, callback):
     typ, [data] = conn.select('"%s"' % fold)
     if typ != 'OK':
         print("select to folder: %s. fail" % fold)
@@ -284,7 +284,7 @@ def rebuild_db():
     print("rebuild db spent: %d/%d" % (time.time() - start, i))
 
 
-def main():
+def sync():
     conn = imaplib.IMAP4_SSL(host = conf.server, port = conf.port)
 
     while True:
@@ -294,24 +294,31 @@ def main():
                 print("login fail" % fold)
                 return
             break
-        except imaplib.error:
+        except:
             time.sleep(5)
             continue
+
+    if os.path.isfile(conf.synclock):
+        print("%s locked" % conf.synclock)
+        return
+
+    open(conf.synclock, 'w').close()
 
     for fold in conf.folders:
         g.current_fold = fold
 
         last = get_last_uid()
 
-        sync(conn, fold, last, procmails)
+        do(conn, fold, last, procmails)
 
     fold = 'Sent'
     g.current_fold = fold
     last = get_last_uid()
-    sync(conn, fold, last, procmails_builin)
+    do(conn, fold, last, procmails_builin)
 
     save_last_check()
 
+    os.remove(conf.synclock)
 
 
 

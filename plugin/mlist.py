@@ -10,6 +10,7 @@ import time
 import email
 import email.utils
 import os
+import popup
 
 import subprocess
 import datetime
@@ -402,6 +403,13 @@ def switch_options(target):
 def refresh():
     g.maillist.refresh()
 
+def download():
+    popup.PopupRun(fm.syncmail.sync, title = 'fm mail sync',
+            maxwidth=160,
+            wrap = False)
+
+    g.maillist.refresh()
+
 @pyvim.cmd()
 def MailNew():
     path = '~/.fm.d/draft/%s.mail' % time.time()
@@ -438,16 +446,21 @@ def merge_topic():
     obj.merge(g.stash)
 
     g.maillist.refresh()
+
     g.stash = []
+    g.stash_info = []
+    g.tips.close()
 
 
 menu = [
         ("Refresh",                     refresh),
-        ("---------------------------", None),
-        ("Fold Current thread",         MailFold),
-        ("Mark Current Readed",         MailMarkRead, 'one'),
+        ("Download",                    download),
+        ("------Readed---------------", None),
+        ("Mark Readed",                 MailMarkRead, 'one'),
         ("Mark Thread Readed",          MailMarkRead, 'thread'),
         ("Set Flag",                    MailFlag),
+        ("---------------------------", None),
+        ("Fold thread",                 MailFold),
         ("---------------------------", None),
         ("Sort By Thread or Plain",     switch_options, 'thread'),
         ("---------------------------", None),

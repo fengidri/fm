@@ -20,6 +20,7 @@ class Conf:
         c = json.loads(j)
 
         self.confd = os.path.expanduser("~/.fm.d")
+        self.synclock = os.path.join(self.confd, 'sync.lock')
 
         self.user     = c['user']
         self.server   = c['server']['host']
