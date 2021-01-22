@@ -68,7 +68,52 @@ def mail_body_quote_handler(line):
         if line[0] == ' ':
             line = line[1:]
 
-    return ('> ' * level) + line
+    return level, ('> ' * level) + line
+
+def mail_body(mail):
+    lines = []
+    reply_n = 0
+    in_reply = False
+
+    for line in mail.Body().split('\n'):
+        line = line.replace('\r', '')
+        r, line = mail_body_quote_handler(line)
+
+        if r and not in_reply:
+            pass
+
+        if r and in_reply:
+            lines.append(None)
+            in_reply = False
+            reply_n += 1
+
+        if not r and in_reply:
+            pass
+
+        if not r and not in_reply:
+            if line.strip() != '':
+                in_reply = True
+
+        lines.append(line)
+
+    if in_reply:
+        reply_n += 1
+        lines.append(None)
+
+    ii = 0
+    for i, line in enumerate(lines):
+        if line == None:
+            ii += 1
+            if ii == reply_n:
+                lines[i] = '> === LAST REPLY ==='
+
+    o = []
+
+    for line in lines:
+        if line != None:
+            o.append(line)
+
+    return o
 
 
 def header_filter(k):
@@ -113,14 +158,8 @@ def _mail_show(mail):
 
         b.append('Subject: ' + mail.Subject())
 
-
-    #b.append('')
     b.append('=' * 80)
-
-    for line in mail.Body().split('\n'):
-        line = line.replace('\r', '')
-        line = mail_body_quote_handler(line)
-        b.append(line)
+    b.append(mail_body(mail))
 
     atta = mail.Attachs()
     if atta:
