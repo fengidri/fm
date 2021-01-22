@@ -20,6 +20,10 @@ import fm
 import g
 import mpage
 
+def token(t, tp):
+    return '\\%s;%s\\end;' % (tp, t)
+
+
 def need_hide_subject(m):
     m.hide_subject = False
 
@@ -98,12 +102,9 @@ class MailList(object):
 
     def strline1(self, m, head = None):
         if m.isnew and not m.From().isme:
-            stat = '*'
+            stat = '  *'
         else:
-            if time.time() - m.Date_ts() < 3600 * 36:
-                stat = '#'
-            else:
-                stat = ' '
+            stat = '   '
 
         if m.flag:
             stat += '⚑'

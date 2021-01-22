@@ -53,7 +53,7 @@ def db_load_topic(mbox):
     return o
 
 class TopicDb(object):
-    def __init__(self, record):
+    def __init__(self, record, obj):
         record = list(record)
         self.rowid    = record.pop(0)
         self.id       = record.pop(0)
@@ -61,6 +61,8 @@ class TopicDb(object):
         self.mbox     = record.pop(0)
         self.first_ts = record.pop(0)
         self.last_ts  = record.pop(0)
+
+        self.obj = obj
 
         self.mail_map = {}
         self.mail_list = []
@@ -140,7 +142,7 @@ class Topic(object):
             self.tops.append(mail)
 
         if record:
-            self.db = TopicDb(record)
+            self.db = TopicDb(record, self)
         else:
             self.db = None
 

@@ -367,6 +367,10 @@ class M(object):
         for i, m in enumerate(self.sub_thread):
             m.output(o)
 
+    def title(self):
+        subject = self.Subject()
+        return subject.split(']')[-1]
+
 
 # this init from file path
 class Mail(M):
@@ -435,6 +439,7 @@ class Mail(M):
         if not d:
             return 0
         return email.utils.mktime_tz(d)
+
 
 
 from . import db
