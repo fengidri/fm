@@ -39,8 +39,31 @@ def MailMenu(sel = None):
         popup.PopupMenu(mlist.menu)
     elif sel == 'sort':
         mlist.switch_options('thread')
+    elif sel == 'flag':
+        mlist.MailFlag()
+    elif sel == 'refresh':
+        mlist.refresh()
 
 
 @pyvim.cmd()
-def MailPageMenu():
-    popup.PopupMenu(mpage.menu)
+def MailPageMenu(sel = None):
+    if not sel:
+        popup.PopupMenu(mpage.menu)
+    elif sel == 'reply':
+        mpage.reply()
+    elif sel == 'header':
+        mpage.switch_options('header')
+        mpage.switch_options('filter')
+
+
+
+
+
+
+
+
+
+
+
+
+

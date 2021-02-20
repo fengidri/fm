@@ -70,12 +70,34 @@ def mail_body_quote_handler(line):
 
     return level, ('> ' * level) + line
 
+def handle_reply(mail, line, i):
+    if line.strip() == '':
+        return False
+
+    if mail.first_reply_linenu == 0:
+        if line.endswith("wrote:"): # reply first line
+            return False
+
+        if line.startswith("From: "): # reply first line
+            return False
+
+        if line.startswith("Date: "): # reply first line
+            return False
+
+        mail.short_msg = line
+        mail.first_reply_linenu = i
+
+    return True
+
 def mail_body(mail):
     lines = []
     reply_n = 0
     in_reply = False
 
-    for line in mail.Body().split('\n'):
+    mail.first_reply_linenu = 0
+    mail.reply_index = -1
+
+    for i, line in enumerate(mail.Body().split('\n')):
         line = line.replace('\r', '')
         r, line = mail_body_quote_handler(line)
 
@@ -88,11 +110,15 @@ def mail_body(mail):
             reply_n += 1
 
         if not r and in_reply:
-            pass
+            if 0 == mail.reply_index:
+                if len(mail.short_msg) < 80:
+                    mail.short_msg += line
+
 
         if not r and not in_reply:
-            if line.strip() != '':
-                in_reply = True
+            in_reply = handle_reply(mail, line, i)
+            if in_reply:
+                mail.reply_index += 1
 
         lines.append(line)
 
@@ -133,7 +159,6 @@ def _mail_show(mail):
     b = vim.current.buffer
     del b[:]
 
-
     if g.header_raw:
         for k,v in mail.get_mail().items():
             if not header_filter(k):
@@ -148,7 +173,8 @@ def _mail_show(mail):
                 b.append(t)
 
     else:
-        b[0] ='Message-Id: ' + mail.Message_id()
+        b[0] ='Subject: ' + mail.Subject()
+        b.append('Message-Id: ' + mail.Message_id())
         b.append('Date: '    + mail.Date())
 
         align_email_addr(b,
@@ -156,9 +182,11 @@ def _mail_show(mail):
                 'To:',   mail.To(real = True),
                 'Cc:',   mail.Cc(real = True))
 
-        b.append('Subject: ' + mail.Subject())
 
     b.append('=' * 80)
+
+    header_num = len(b)
+
     b.append(mail_body(mail))
 
     atta = mail.Attachs()
@@ -170,12 +198,11 @@ def _mail_show(mail):
         b.append('')
 
     b.append('=' * 80)
-#    b.append('mbox:      %s' % mail.mbox)
-#    b.append('sub:       %s' % mail.sub_n)
-#    b.append('sub-real:  %s' % len(mail.get_reply()))
     b.append('size:      %s' % mail.size)
     b.append('')
     b.append('=%s' % mail.path)
+
+    vim.current.window.cursor = (mail.first_reply_linenu + header_num + 1, 0)
 
 
 def show(mail):

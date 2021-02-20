@@ -166,6 +166,8 @@ class M(object):
         self.fold = None # for vim plugin
         self.topic_id = None
 
+        self.short_msg = ''
+
     def get_mail(self):
         if self.mail:
             return self.mail
@@ -387,7 +389,6 @@ class Mail(M):
     def In_reply_to(self):
         if not self.header_in_reply_to:
             r = self.get_mail().get("In-Reply-To", '')
-            r = r.split('\n')[0].strip()
             r = header_parse_msgid(r)
             self.header_in_reply_to = r
         else:

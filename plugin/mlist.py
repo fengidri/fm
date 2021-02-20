@@ -121,8 +121,13 @@ class MailList(object):
 
         f = token(f, 'name')
 
-        if m.title() == g.last_title and m != m.thread_head and g.thread:
+        if m.hide_title:
             subject = f
+            f = None
+        elif m.title() == g.last_title and m != m.thread_head and g.thread:
+            subject = f
+            f = None
+            m.hide_title = True
         else:
             g.last_title = m.title()
             subject =  m.Subject().strip()
@@ -147,9 +152,10 @@ class MailList(object):
 
         else:
             if len(subject) >= l:
-                suffix = '...'
-                subject = subject[0:l - len(suffix)]
-                subject += suffix
+                if f:
+                    suffix = '...'
+                    subject = subject[0:l - len(suffix)]
+                    subject += suffix
             else:
                 subject = subject.ljust(l)
 
@@ -161,7 +167,10 @@ class MailList(object):
         if g.exts:
             fmt = '{stat} {subject} {date} {ext} {mbox} {rowid} {topic_id}'
         elif g.thread:
-            fmt = '{stat} {date} {subject}'
+            if m.short_msg:
+                fmt = '{stat} {date} {subject} | {short_msg}'
+            else:
+                fmt = '{stat} {date} {subject}'
         else:
             fmt = '{stat} {date} {subject} {topic}'
 
@@ -172,6 +181,7 @@ class MailList(object):
                 mbox = m.mbox,
                 rowid = m.rowid,
                 topic = '', # TODO
+                short_msg = m.short_msg[0:60],
                 topic_id=m.topic_id);
 
     def strline(self, m, head = None):
@@ -230,6 +240,9 @@ class MailList(object):
 
         mpage.show(mail)
 
+        # for short_msg
+        leaf.update(self.strline(mail))
+
         g.pager_buf = vim.current.buffer
         g.pager_mail = mail
 
@@ -266,6 +279,7 @@ class MailList(object):
 
             need_hide_subject(m)
 
+            m.hide_title = False
             s = self.strline(m, head)
 
             name = os.path.basename(m.path)
@@ -314,6 +328,7 @@ class MailList(object):
         node.append(frainui.Leaf('', None, None))
 
         for m in ms:
+            m.hide_title = False
             s = self.strline(m)
 
             name = os.path.basename(m.path)

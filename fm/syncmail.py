@@ -166,7 +166,11 @@ def save_mail(fold, dirname, mail, Id, uid):
     m = email.message_from_bytes(mail)
 
     s = m.get("Subject", '').replace('\n', ' ').replace('\r', '')
-    print("save %s:%s/%s to %s(rowid: %d topic_id: %d) %.3fs. %s" % (fold, Id,
+
+    date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+    print("%s save %s:%s/%s to %s(rowid: %d topic_id: %d) %.3fs. %s" % (date,
+        fold, Id,
         g.current_total, dirname, rowid, topic_id,  end - start, s))
 
 

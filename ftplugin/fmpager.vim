@@ -8,6 +8,8 @@ setlocal winwidth=90
 
 map <buffer> <F2> :MailPageMenu<cr>
 map <buffer> m :MailPageMenu<cr>
+map <buffer> R :MailPageMenu reply<cr>
+map <buffer> H :MailPageMenu header<cr>
 
 set preserveindent
 set cinoptions=(0,:0
