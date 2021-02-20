@@ -296,13 +296,23 @@ class MailFromDb(mail.M):
     def delete(self):
         index.filter(rowid = self.rowid).delete()
 
-    def set_fold(self):
-        if self.fold:
-            fold = 0
-            self.fold = False
-        else:
+    def set_fold(self, v = None):
+        if v == True:
             fold = 1
             self.fold = True
+
+        if v == False:
+            fold = 0
+            self.fold = False
+
+        if v == None:
+            if self.fold:
+                fold = 0
+                self.fold = False
+            else:
+                fold = 1
+                self.fold = True
+
         index.filter(rowid = self.rowid).update(fold = fold)
 
     def set_flag(self, flag):

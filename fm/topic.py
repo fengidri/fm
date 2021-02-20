@@ -78,6 +78,8 @@ class TopicDb(object):
         for m in mails:
             msgid = m.Message_id()
 
+            m.topic = self.obj
+
             l = self.mail_map.get(msgid)
 
             if not l:
@@ -238,3 +240,5 @@ class Topic(object):
     def get_id(self):
         return self.db.id
 
+    def get_threads(self):
+        return self.db.tops

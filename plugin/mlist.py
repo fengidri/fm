@@ -100,7 +100,7 @@ class MailList(object):
 
         return date
 
-    def strline1(self, m, head = None):
+    def strline(self, m, head = None):
         if m.isnew and not m.From().isme:
             stat = '  *'
         else:
@@ -183,52 +183,6 @@ class MailList(object):
                 topic = '', # TODO
                 short_msg = m.short_msg[0:60],
                 topic_id=m.topic_id);
-
-    def strline(self, m, head = None):
-        return self.strline1(m, head)
-        if m.isnew:
-            stat = '*'
-        else:
-            stat = ' '
-
-        date = self.strdate(m)
-
-        f = m.From().short
-        if f != '':
-            f = '%s' % f
-
-#        f = f.rjust(15)[0:15]
-        if f:
-            f = '%s:' % f
-        else:
-            f = 'Me:'
-
-
-        f = '%s %s' % (m.thread_prefix(fm.conf.me), f)
-
-        f = f.ljust(30)[0:30]
-
-        if m.hide_subject:
-            subject = ''
-        else:
-            subject = m.Subject().strip()
-
-#        subject = '%s %s %s' % (m.thread_prefix(fm.conf.me), f, subject)
-        if m.fold:
-            subject += ' ......'
-
-        subject = subject.ljust(90)[0:90]
-
-        ext = ''
-        if m == head:
-            ext += ' (%d)' % m.num()
-
-        fmt = '{stat} {subject} {_from} {date}'
-        fmt = '{stat}{_from} {subject} {date} {ext}'
-        return fmt.format(stat = stat,
-                subject = subject,
-                _from = f,
-                date = date, ext = ext);
 
     def mail_show(self, leaf, listwin):
         mail = leaf.ctx
@@ -370,6 +324,23 @@ def MailFold():
 
     g.maillist.refresh()
 
+def MailFoldOther():
+    node, mail = get_node()
+
+    head = mail.thread_head
+    topic = head.topic
+
+    ts = head.topic.get_threads()
+
+    for h in ts:
+        if h == head:
+            continue
+
+        h.mark_readed(True)
+        h.set_fold(True)
+
+    g.maillist.refresh()
+
 def MailFlag():
     node, mail = get_node()
 
@@ -485,8 +456,9 @@ menu = [
         ("Mark Readed",                 MailMarkRead, 'one'),
         ("Mark Thread Readed",          MailMarkRead, 'thread'),
         ("Set Flag",                    MailFlag),
-        ("---------------------------", None),
+        ("------Fold-----------------", None),
         ("Fold thread",                 MailFold),
+        ("Fold other",                  MailFoldOther),
         ("---------------------------", None),
         ("Sort By Thread or Plain",     switch_options, 'thread'),
         ("---------------------------", None),
@@ -494,9 +466,9 @@ menu = [
         ("---------------------------", None),
         ("More info",                   switch_options, "exts"),
         ("---------------------------", None),
-        ("Delate Current Mail",         MailDel),
+        ("Del Mail/Topic",              MailDel),
         ("---------------------------", None),
-        ("Push to stash",               push_to_stash),
+        ("Push topic to stash",         push_to_stash),
         ("Clear stash",                 clear_stash),
-        ("Merge Topic",                 merge_topic),
+        ("Merge stash to current Topic",merge_topic),
         ]
