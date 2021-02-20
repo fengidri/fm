@@ -254,28 +254,20 @@ class MailList(object):
 
         ms = topic.output(reverse=True)
 
-        leaf_num = 0
-
         head = None
+        last = None
+        hide_mail = False
         for m in ms:
-            first = False
-            if head:
-                if head != m.thread_head:
-                    first = True
-                    #if leaf_num > 1:
-                    #    node.append(frainui.Leaf('', None, None))
-                    node.append(frainui.Leaf('', None, None))
-
-                    head = m.thread_head
-            else:
+            if head != m.thread_head:
                 head = m.thread_head
-                first = True
 
-            if first:
-                leaf_num = 0
-            else:
-                if head.fold and head.news() == 0:
-                    continue
+                if last:
+                    node.append(frainui.Leaf('', None, None))
+                    last = None
+
+            if head.fold and head.news() == 0:
+                hide_mail = True
+                continue
 
             need_hide_subject(m)
 
@@ -286,10 +278,15 @@ class MailList(object):
 
             l = frainui.Leaf(name, m, self.mail_show, display = s,
                     last_win=True, noindent = True)
-            leaf_num += 1
             node.append(l)
+            last = l
 
-        node.append(frainui.Leaf('', None, None))
+        if last:
+            node.append(frainui.Leaf('', None, None))
+
+        if hide_mail:
+            node.append(frainui.Leaf('   === SOME MAIL HIDDEN ===', None, None))
+            node.append(frainui.Leaf('   ', None, None))
 
 
     def list_thread(self, mbox, node):
