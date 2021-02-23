@@ -159,6 +159,8 @@ def _mail_show(mail):
     b = vim.current.buffer
     del b[:]
 
+    b[0] =  '=' * 80
+
     if g.header_raw:
         for k,v in mail.get_mail().items():
             if not header_filter(k):
@@ -173,7 +175,6 @@ def _mail_show(mail):
                 b.append(t)
 
     else:
-        b[0] ='Subject: ' + mail.Subject()
         b.append('Message-Id: ' + mail.Message_id())
         b.append('Date: '    + mail.Date())
 
@@ -181,6 +182,18 @@ def _mail_show(mail):
                 'From:', mail.From(real = True),
                 'To:',   mail.To(real = True),
                 'Cc:',   mail.Cc(real = True))
+
+        b.append('')
+
+        s = mail.Subject()
+        s = s.split(':', 1)
+        b.append(s[0])
+        if len(s) == 2:
+            b.append('   ' + s[1])
+
+
+
+        b.append('')
 
 
     b.append('=' * 80)
