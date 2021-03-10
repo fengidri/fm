@@ -288,7 +288,8 @@ class MailList(object):
             node.append(l)
 
     def list_handler(self, node, listwin):
-        mbox = fm.Mbox(g.mbox['path'], g.thread, preload = 100)
+        mbox = fm.Mbox(g.mbox['path'], g.thread, preload = 100,
+                archived = g.archived)
 
         if mbox.thread_show:
             self.list_thread(mbox, node)
@@ -321,6 +322,13 @@ def MailFold():
 
     mail.mark_readed(True)
     mail.set_fold()
+
+    g.maillist.refresh()
+
+def TopicArchived():
+    node, topic = get_node()
+
+    topic.set_archived(True)
 
     g.maillist.refresh()
 
@@ -385,6 +393,9 @@ def switch_options(target):
 
     if target == 'exts':
         g.exts = not g.exts
+
+    if target == 'archived':
+        g.archived = not g.archived
 
     g.maillist.refresh()
 
@@ -459,8 +470,10 @@ menu = [
         ("------Fold-----------------", None),
         ("Fold thread",                 MailFold),
         ("Fold other",                  MailFoldOther),
+        ("Topic archived",              TopicArchived),
         ("---------------------------", None),
         ("Sort By Thread or Plain",     switch_options, 'thread'),
+        ("Show archived",               switch_options, 'archived'),
         ("---------------------------", None),
         ("Create New Mail",             MailNew),
         ("---------------------------", None),

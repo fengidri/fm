@@ -4,7 +4,7 @@ from . import db
 from . import mail
 from collections import defaultdict
 
-def batch_load(topics):
+def batch_load_mails(topics):
     mails = db.index.batch_load_topics(topics)
 
     ms = defaultdict(list)
@@ -37,10 +37,15 @@ def topic_merge(dst, src):
 
     db.commit()
 
-def db_load_topic(mbox):
+def db_load_topic(mbox, archived):
+    if archived:
+        archived = 1
+    else:
+        archived = 0
+
     o = []
     topic = {}
-    for t in db.topic.filter(mbox = mbox).select():
+    for t in db.topic.filter(mbox = mbox, archived = archived).select():
         last = topic.get(t.topic())
         if last:
             topic_merge(last.db.id, [t.db.id])
@@ -208,6 +213,15 @@ class Topic(object):
 
     def delete(self):
         db.topic.filter(id = self.db.id).delete()
+
+    def set_archived(self, flag):
+        if flag:
+            flag = 1
+        else:
+            flag = 0
+
+        db.topic.filter(id = self.db.id).update(archived = flag)
+
 
     def timestamp(self):
         if self.tops:

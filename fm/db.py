@@ -48,7 +48,8 @@ CREATE TABLE IF NOT EXISTS FMTopic
     participant TEXT NOT     NULL,
 
     mail_n      INT  default 0,
-    thread_n    INT  default 0
+    thread_n    INT  default 0,
+    archived    INT  default 0
 );
 '''
 topic_sql1 = 'CREATE INDEX IF NOT EXISTS ti ON FMTopic(mbox, topic, id);'

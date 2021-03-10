@@ -16,7 +16,7 @@ conf = conf.conf
 sendmail = send.sendmail
 
 class Mbox(object):
-    def __init__(self, mbox, thread = True, preload = 0):
+    def __init__(self, mbox, thread = True, preload = 0, archived = 0):
         mbox = os.path.basename(mbox)
 
         self.top = []
@@ -31,10 +31,10 @@ class Mbox(object):
         self.mbox = mbox
 
         if self.thread_show:
-            self.topics = topic.db_load_topic(mbox)
+            self.topics = topic.db_load_topic(mbox, archived)
             self.topics.sort(key = lambda x: x.timestamp(), reverse = True)
             if preload:
-                topic.batch_load(self.topics[0:preload])
+                topic.batch_load_mails(self.topics[0:preload])
         else:
             self.top = db.index.filter(mbox = mbox).select()
             self.top.sort(key = lambda x: x.Date_ts())
