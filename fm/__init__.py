@@ -18,7 +18,7 @@ sendmail = send.sendmail
 Mbox = mbox.Mbox
 
 def boxes():
-    return db.class_names.names.keys()
+    return db.class_names.array
 
 class g:
     msgid = 0

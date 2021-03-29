@@ -10,6 +10,7 @@ class_sql = '''
 CREATE TABLE IF NOT EXISTS FMClass
 (
     mbox        TEXT NOT NULL,
+    sort        INT default 100000,
     unique(mbox)
 );
 '''
@@ -100,10 +101,14 @@ class ClassNames(db_driver.Table):
     def update(self):
         self.ids = {}
         self.names = {}
+        self.array = []
 
         rows = self.filter().select()
 
-        for _id, name in rows:
+        rows.sort(key = lambda x: x[2])
+
+        for _id, name, sort in rows:
+            self.array.append(name)
             self.ids[_id] = name
             self.names[name] = _id
 
