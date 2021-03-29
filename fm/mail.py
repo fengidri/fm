@@ -156,6 +156,14 @@ def mail_body(mail):
         if charset:
             return charset
 
+        content_type = part.get('Content-Type', '').lower()
+        ct = content_type.split(';')
+
+        for c in ct:
+            c = c.strip()
+            if c.startswith('charset='):
+                return c[8:]
+
         content_type = mail.get('Content-Type', '').lower()
         ct = content_type.split(';')
 
