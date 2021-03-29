@@ -175,7 +175,7 @@ def save_mail(fold, dirname, mail, Id, uid):
 
 
 def procmail(mail):
-    cmd = ['python2', conf.procmail]
+    cmd = ['python3', conf.procmail]
 
     p = subprocess.Popen(cmd, stdin = subprocess.PIPE, stdout=subprocess.PIPE)
     stdout, stderr = p.communicate(mail)
@@ -274,16 +274,16 @@ def refresh_class():
         if b == 'Sent':
             continue
 
-        ds = procmail(m)
+        mid = m.Message_id()
+        ds = procmail(open(m.path, 'rb').read())
         for d in ds:
             if d[0] == '>':
                 continue
 
-            mid = m.Message_id()
-
-            if mbox[b].get(mid):
+            if d in mbox and mid in mbox[d]:
                 continue
 
+            print("save mail to mbox %s: %s" % (d, m.subject))
             save_mail_to_db(m.path, d)
 
 
@@ -329,12 +329,6 @@ class Rebuild(object):
         db.commit() # for delay
 
         print("rebuild db spent: %d/%d" % (time.time() - self.start, self.i))
-
-def rebuild_db():
-    Rebuild()
-
-
-
 
 
 def sync():
