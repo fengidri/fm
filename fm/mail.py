@@ -146,6 +146,52 @@ class EmailAddrLine(list):
     def to_str_list(self):
         return [x.to_str() for x in self]
 
+def mail_body(mail):
+    def mail_charset(mail, part):
+        charset = part.get_charset()
+        if charset:
+            return charset
+
+        charset = mail.get_charset()
+        if charset:
+            return charset
+
+        content_type = mail.get('Content-Type', '').lower()
+        ct = content_type.split(';')
+
+        for c in ct:
+            c = c.strip()
+            if c.startswith('charset='):
+                return c[8:]
+
+        return 'UTF8'
+
+    def __body(part):
+        m = part.get_payload(None, False)
+
+        cte = part.get('Content-Transfer-Encoding')
+
+        if isinstance(m, bytes):
+            m = m.decode(mail_charset(mail, part))
+
+        if cte == 'quoted-printable':
+            m = quopri.decodestring(m)
+            m = m.decode(mail_charset(mail, part))
+
+        if cte == 'base64':
+            m = base64.b64decode(m)
+            m = m.decode(mail_charset(mail, part))
+
+        return m
+
+    tp = ['text/plain', 'text/html']
+
+    for t in tp:
+        for part in mail.walk():
+            if part.get_content_type() == t:
+                return __body(part)
+    return ''
+
 class M(object):
     def __init__(self):
         self.topic = None
@@ -172,52 +218,13 @@ class M(object):
         if self.mail:
             return self.mail
 
-        for e in ['UTF-8', 'Latin-1']:
-            try:
-                c = open(self.path, encoding = e).read()
-                break
-            except UnicodeDecodeError:
-                pass
-        else:
-            raise 'UnicodeDecodeError: %s' % self.path
-
+        c = open(self.path, 'rb').read()
         self.size = len(c)
-
-        self.mail = email.message_from_string(c)
+        self.mail = email.message_from_bytes(c)
         return self.mail
 
-    def __body(self, part):
-        m = part.get_payload(None, False)
-        charset = part.get_charset()
-        if not charset:
-            charset = 'UTF-8'
-
-        cte = part.get('Content-Transfer-Encoding')
-
-        if isinstance(m, bytes):
-            m = m.decode(charset)
-
-        if cte == 'quoted-printable':
-            m = quopri.decodestring(m)
-            m = m.decode('UTF-8')
-
-        if cte == 'base64':
-            m = base64.b64decode(m)
-            m = m.decode('UTF-8')
-
-        return m
-
-
     def Body(self):
-        b = self.get_mail()
-
-        tp = ['text/plain', 'text/html']
-
-        for t in tp:
-            for part in b.walk():
-                if part.get_content_type() == t:
-                    return self.__body(part)
-        return ''
+        return mail_body(self.get_mail())
 
     def header(self, header):
         h = self.get_mail().get(header, '')
