@@ -20,6 +20,11 @@ from . import conf
 
 conf = conf.conf
 
+sys.path.insert(0, os.path.dirname(conf.procmail))
+
+import procmail as _procmail
+
+
 class g:
     current_total = None
     gid           = 0
@@ -135,7 +140,7 @@ def save_mail_to_db(path, mbox, delay = False):
     return rowid, topic_id
 
 
-def save_mail(fold, dirname, mail, Id, uid):
+def save_mail(fold, dirname, m, mail, Id, uid):
     uid = uid.decode('utf8')
     Id = int(Id)
 
@@ -163,7 +168,6 @@ def save_mail(fold, dirname, mail, Id, uid):
     g.saved = True
 
     # for log
-    m = email.message_from_bytes(mail)
 
     s = m.get("Subject", '').replace('\n', ' ').replace('\r', '')
 
@@ -175,21 +179,7 @@ def save_mail(fold, dirname, mail, Id, uid):
 
 
 def procmail(mail):
-    cmd = ['python3', conf.procmail]
-
-    p = subprocess.Popen(cmd, stdin = subprocess.PIPE, stdout=subprocess.PIPE)
-    stdout, stderr = p.communicate(mail)
-
-    o = []
-    for l in stdout.decode('utf8').split('\n'):
-        l = l.strip()
-        if not l:
-            continue
-
-        o.append(l)
-
-    return o
-
+    return _procmail.procmail(mail)
 
 def procmails(fold, maillist):
     for mail in maillist:
@@ -200,7 +190,9 @@ def procmails(fold, maillist):
         uid = mail[0].split()[2]
         mail = mail[1]
 
-        ds = procmail(mail)
+        m = email.message_from_bytes(mail)
+
+        ds = procmail(m)
         for d in ds:
             if d[0] == '>':
                 d = d[1:].strip()
@@ -209,7 +201,7 @@ def procmails(fold, maillist):
 
                 continue
 
-            save_mail(fold, d, mail, Id, uid)
+            save_mail(fold, d, m, mail, Id, uid)
 
 
 def procmails_builin(fold, maillist):
@@ -274,8 +266,10 @@ def refresh_class():
         if b == 'Sent':
             continue
 
+        s = time.time()
+
         mid = m.Message_id()
-        ds = procmail(open(m.path, 'rb').read())
+        ds = procmail(m)
         for d in ds:
             if d[0] == '>':
                 continue
