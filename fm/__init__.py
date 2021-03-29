@@ -8,6 +8,7 @@ from . import syncmail
 from . import conf
 from . import mail
 from . import mbox
+from . import db
 
 Mail = mail.Mail
 
@@ -15,6 +16,9 @@ conf = conf.conf
 
 sendmail = send.sendmail
 Mbox = mbox.Mbox
+
+def boxes():
+    return db.class_names.names.keys()
 
 class g:
     msgid = 0

@@ -32,25 +32,7 @@ class Conf:
         self.smtp_host = c['smtp']['host']
         self.smtp_port = c['smtp']['port']
 
-
-        default = c.get('default')
-
-        self.mbox = []
-
-        p = os.path.expanduser(c['deliver'])
-        self.deliver = p
-
-        for d in os.listdir(p):
-            dd = os.path.join(p, d)
-            if os.path.isdir(dd):
-                box = {'path':dd}
-                box['name'] = d
-
-                if d == default:
-                    box['default'] = True
-                    self.mbox.insert(0, box)
-                else:
-                    self.mbox.append(box)
+        self.deliver = os.path.expanduser(c['deliver'])
 
         self.me = c.get('user')
         self.name = c.get('name', self.me.split('@')[0])

@@ -251,41 +251,90 @@ def do(conn, fold, last, callback):
         resp, data = conn.uid('fetch', i, '(RFC822)')
         callback(fold, data)
 
-
-def rebuild_db():
+def refresh_class():
+    # 对于所有的已经在数据库里面的邮件基于 procmail 进行重新分类
     start = time.time()
-    i = 0
 
-    def handle(path, d, i):
-        if i % 500 == 0:
-            print("process %d done. spent: %d" % (i, time.time() - start))
+    mails = db.index.filter().select()
+
+    mbox = {}
+
+    for m in mails:
+        b = m.mbox
+        if b == 'Sent':
+            continue
+
+        if b not in mbox:
+            mbox[b] = []
+
+        mbox[b].append(m.Message_id())
+
+    for m in mails:
+        b = m.mbox
+        if b == 'Sent':
+            continue
+
+        ds = procmail(m)
+        for d in ds:
+            if d[0] == '>':
+                continue
+
+            mid = m.Message_id()
+
+            if mbox[b].get(mid):
+                continue
+
+            save_mail_to_db(m.path, d)
+
+
+class Rebuild(object):
+    def walk_mail_file(self, handle):
+        dirs = os.listdir(conf.deliver)
+        for d in dirs:
+            if d[0] == '.':
+                continue
+
+            dirpath = os.path.join(conf.deliver, d)
+            for f in os.listdir(dirpath):
+                if f[0] == '.':
+                    continue
+
+                path = os.path.join(dirpath, f)
+                if os.path.isdir(path):
+                    for f in os.listdir(path):
+                        npath = os.path.join(path, f)
+                        handle(npath, d)
+                else:
+                    handle(path, d)
+
+    def handle_mail(self, path, d):
+        self.i += 1
+        if self.i % 500 == 0:
+            print("process %d/%d done. spent: %d from start" % (self.i,
+                self.total, time.time() - self.start))
 
         save_mail_to_db(path, d, delay = True)
 
+    def handle_sum(self, path, d):
+        self.total += 1
 
-    dirs = os.listdir(conf.deliver)
-    for d in dirs:
-        if d[0] == '.':
-            continue
-        dirpath = os.path.join(conf.deliver, d)
-        for f in os.listdir(dirpath):
-            if f[0] == '.':
-                continue
+    def __init__(self):
+        self.i = 0
+        self.total = 0
+        self.start = time.time()
 
-            path = os.path.join(dirpath, f)
-            if os.path.isdir(path):
-                for f in os.listdir(path):
-                    npath = os.path.join(path, f)
-                    i += 1
-                    handle(npath, d, i)
-            else:
-                i += 1
-                handle(path, d, i)
+        self.walk_mail_file(self.handle_sum)
+        self.walk_mail_file(self.handle_mail)
 
-    db.commit() # for delay
+        db.commit() # for delay
+
+        print("rebuild db spent: %d/%d" % (time.time() - self.start, self.i))
+
+def rebuild_db():
+    Rebuild()
 
 
-    print("rebuild db spent: %d/%d" % (time.time() - start, i))
+
 
 
 def sync():

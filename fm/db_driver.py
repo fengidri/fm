@@ -55,7 +55,8 @@ class DB(object):
 class Filter(object):
     def __init__(self, table, **f):
         self.table = table.table
-        self.sel_handle = table.sel_handle
+        self.sel_handle = getattr(table, 'sel_handle', None)
+        self.kv_handle = getattr(table, 'kv_handle', None)
         self.db = table.db
         self.where = []
 
@@ -67,6 +68,9 @@ class Filter(object):
     def filter(self, **f):
         w = self.where
         for k, v in f.items():
+            if self.kv_handle:
+                k, v = self.kv_handle(k, v)
+
             if w:
                 w.append('and')
 
@@ -96,13 +100,19 @@ class Filter(object):
         cmd = []
         cmd.append('select rowid,* from')
         cmd.append(self.table)
-        cmd.append('where')
-        cmd.extend(self.get_where())
+
+        w = self.get_where()
+        if w:
+            cmd.append('where')
+            cmd.extend(self.get_where())
         cmd = ' '.join(cmd)
 
         self.db._exec(cmd)
         ret =  self.db.c.fetchall()
-        return self.sel_handle(ret)
+        if self.sel_handle:
+            return self.sel_handle(ret)
+        else:
+            return ret
 
     def update(self, **kv):
         cmd = []
@@ -111,6 +121,8 @@ class Filter(object):
         cmd.append('set')
 
         for k,v in kv.items():
+            if self.kv_handle:
+                k, v = self.kv_handle(k, v)
             cmd.append('%s=' % k)
 
             if isinstance(v, str):

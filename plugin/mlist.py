@@ -138,7 +138,7 @@ class MailList(object):
             prefix = '%s|---' %(i1, )
             subject = prefix + subject
 
-        l = 90
+        l = 120
 
         if m.fold:
             suffix = ' ......'
@@ -219,7 +219,7 @@ class MailList(object):
                     node.append(frainui.Leaf('', None, None))
                     last = None
 
-            if head.fold and head.news() == 0:
+            if g.fold_hide and head.fold and head.news() == 0:
                 hide_mail = True
                 continue
 
@@ -246,6 +246,8 @@ class MailList(object):
     def list_thread(self, mbox, node):
         topics = mbox.get_topics()
 
+        node.append(frainui.Leaf('', None, None))
+
         for topic in topics:
             if topic.loaded():
                 defopen = True
@@ -269,11 +271,12 @@ class MailList(object):
 
             node.append(n)
 
-        self.ui_list.title = "MBox: %s topic: %s stash: %s" % (g.mbox['name'], len(topics), len(g.stash))
+        self.ui_list.title = "MBox: %s. Topic: %s. Archived: %s. Stash: %s." % (
+                g.mbox, len(topics), g.archived, len(g.stash))
 
     def list_plain(self, mbox, node):
         ms = mbox.output(reverse=True)
-        self.ui_list.title = "MBox: %s num: %s" % (g.mbox['name'], len(ms))
+        self.ui_list.title = "MBox: %s num: %s" % (g.mbox, len(ms))
 
         head = None
         node.append(frainui.Leaf('', None, None))
@@ -288,7 +291,7 @@ class MailList(object):
             node.append(l)
 
     def list_handler(self, node, listwin):
-        mbox = fm.Mbox(g.mbox['path'], g.thread, preload = 100,
+        mbox = fm.Mbox(g.mbox, g.thread, preload = 100,
                 archived = g.archived)
 
         if mbox.thread_show:
@@ -397,6 +400,9 @@ def switch_options(target):
     if target == 'archived':
         g.archived = not g.archived
 
+    if target == 'fold':
+        g.fold_hide = not g.fold_hide
+
     g.maillist.refresh()
 
 def refresh():
@@ -461,26 +467,35 @@ def merge_topic():
 
 
 menu = [
-        ("Refresh",                     refresh),
-        ("Download",                    download),
-        ("------Readed---------------", None),
-        ("Mark Readed",                 MailMarkRead, 'one'),
+        ("Refresh.  From Local Db",     refresh),
+        ("Download. From Mail Server",  download),
+
+        ("",                            None),
+        ("====== mark ===============", None),
+        ("Mark Mail Readed",            MailMarkRead, 'one'),
+        ("Mark Mail Flag",              MailFlag),
         ("Mark Thread Readed",          MailMarkRead, 'thread'),
-        ("Set Flag",                    MailFlag),
-        ("------Fold-----------------", None),
-        ("Fold thread",                 MailFold),
-        ("Fold other",                  MailFoldOther),
-        ("Topic archived",              TopicArchived),
-        ("---------------------------", None),
-        ("Sort By Thread or Plain",     switch_options, 'thread'),
-        ("Show archived",               switch_options, 'archived'),
-        ("---------------------------", None),
-        ("Create New Mail",             MailNew),
-        ("---------------------------", None),
-        ("More info",                   switch_options, "exts"),
-        ("---------------------------", None),
-        ("Del Mail/Topic",              MailDel),
-        ("---------------------------", None),
+
+        ("",                            None),
+        ("====== fold/archived ======", None),
+        ("Archived Topic",              TopicArchived),
+        ("Fold Thread",                 MailFold),
+        ("Fold Other Thread",           MailFoldOther),
+
+        ("",                            None),
+        ("====== show opt ===========", None),
+        ("Toggle Thread/Plain",         switch_options, 'thread'),
+        ("Toggle archived",             switch_options, 'archived'),
+        ("Toggle ext info",             switch_options, "exts"),
+        ("Toggle fold",                 switch_options, "fold"),
+
+        ("",                            None),
+        ("====== option =============", None),
+        ("Create Mail",                 MailNew),
+        ("Delete Mail/Topic",           MailDel),
+
+        ("",                            None),
+        ("====== topic merge ========", None),
         ("Push topic to stash",         push_to_stash),
         ("Clear stash",                 clear_stash),
         ("Merge stash to current Topic",merge_topic),

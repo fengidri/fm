@@ -6,22 +6,20 @@ import g
 import popup
 
 def fm_mbox_handle(node, listwin):
-    mdir = node.ctx
-
-    g.mbox = mdir
+    g.mbox = node.ctx
 
     g.maillist.refresh()
 
 def fm_mbox_list(node, listwin):
     node.append(frainui.Leaf('', None, None))
 
-    for mdir in fm.conf.mbox:
+    for b in fm.boxes():
 
-        r = frainui.Leaf(mdir['name'], mdir, fm_mbox_handle)
+        r = frainui.Leaf(b, b, fm_mbox_handle)
         node.append(r)
 
-        if mdir.get('default'):
-            g.default = r
+        #if mdir.get('default'):
+        #    g.default = r
 
 
 def init():

@@ -23,9 +23,6 @@ def Mail():
     if len(b) != 1:
         return
 
-    if not fm.conf.mbox:
-        return
-
     mbox.init()
 
     g.maillist = mlist.MailList()

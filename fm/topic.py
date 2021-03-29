@@ -63,7 +63,7 @@ class TopicDb(object):
         self.rowid    = record.pop(0)
         self.id       = record.pop(0)
         self.topic    = record.pop(0)
-        self.mbox     = record.pop(0)
+        self.mbox     = db.class_names.getname(record.pop(0))
         self.first_ts = record.pop(0)
         self.last_ts  = record.pop(0)
 
@@ -78,7 +78,7 @@ class TopicDb(object):
 
     def load_mails(self, mails = None):
         if mails == None:
-            mails = db.index.filter(topic_id = self.db.id).select()
+            mails = db.index.filter(topic_id = self.id).select()
 
         for m in mails:
             msgid = m.Message_id()

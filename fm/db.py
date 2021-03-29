@@ -6,11 +6,19 @@ from . import mail
 from . import topic as topic_module
 from . import db_driver
 
+class_sql = '''
+CREATE TABLE IF NOT EXISTS FMClass
+(
+    mbox        TEXT NOT NULL,
+    unique(mbox)
+);
+'''
+
 index_sql = '''
 CREATE TABLE IF NOT EXISTS FMIndex
 (
     status      INT  default 0,
-    mbox        TEXT NOT NULL,
+    mbox        INT default 0,
 
     "Subject"     TEXT NOT NULL,
     "Date"        TEXT NOT NULL,
@@ -39,7 +47,7 @@ CREATE TABLE IF NOT EXISTS FMTopic
     id    INT  default 0,
 
     topic       TEXT NOT     NULL,
-    mbox        TEXT NOT     NULL,
+    mbox        INT default 0,
 
     first_ts    INT  default 0,
     last_ts     INT  default 0,
@@ -74,6 +82,7 @@ class Db(db_driver.DB):
 
         c = conn.cursor()
 
+        c.execute(class_sql)
         c.execute(index_sql)
         c.execute(index_sql1)
         c.execute(topic_sql)
@@ -81,6 +90,42 @@ class Db(db_driver.DB):
 
         conn.commit()
 
+class ClassNames(db_driver.Table):
+    def __init__(self):
+        self.table = 'FMClass'
+        self.db = db
+        self.update()
+
+
+    def update(self):
+        self.ids = {}
+        self.names = {}
+
+        rows = self.filter().select()
+
+        for _id, name in rows:
+            self.ids[_id] = name
+            self.names[name] = _id
+
+    def getid(self, name):
+        if name in self.names:
+            return self.names[name]
+
+        sql = db_driver.SqlFormat()
+        sql.mbox = name
+        cmd = sql.insert_format(self.table)
+
+        db._exec(cmd)
+        self.db.conn.commit()
+
+        self.update()
+
+        return self.names[name]
+
+
+    def getname(self, _id):
+        if _id in self.ids:
+            return self.ids[_id]
 
 class Topic(db_driver.Table):
     def __init__(self):
@@ -91,7 +136,7 @@ class Topic(db_driver.Table):
         sql = db_driver.SqlFormat()
 
         sql.topic       = topic.topic()
-        sql.mbox        = topic.mbox
+        sql.mbox        = class_names.getid(topic.mbox)
         sql.last_ts     = topic.timestamp()
         sql.first_ts    = topic.timestamp()
         sql.sponsor     = ''
@@ -123,6 +168,12 @@ class Topic(db_driver.Table):
             ms.append(t)
         return ms
 
+    # for filter/update rewrite kv
+    def kv_handle(self, key, value):
+        if key == 'mbox':
+            return key, class_names.getid(value)
+        return key, value
+
 
 class Index(db_driver.Table):
     def __init__(self):
@@ -143,6 +194,12 @@ class Index(db_driver.Table):
             m = MailFromDb(m)
             ms.append(m)
         return ms
+
+    # for filter/update rewrite kv
+    def kv_handle(self, key, value):
+        if key == 'mbox':
+            return key, class_names.getid(value)
+        return key, value
 
     def relative(self, mail):
         r = mail.In_reply_to()
@@ -194,7 +251,7 @@ class Index(db_driver.Table):
         f   = h(m.header('from'))
         sub = h(m.Subject())
 
-        sql.mbox        = mbox
+        sql.mbox        = class_names.getid(mbox)
         sql.subject     = sub
         sql.status      = status
         sql.date        = m.Date()
@@ -227,6 +284,7 @@ db = Db()
 
 topic = Topic()
 index = Index()
+class_names = ClassNames()
 
 
 
@@ -239,7 +297,7 @@ class MailFromDb(mail.M):
 
         self.rowid       = record.pop(0)
         self.status      = record.pop(0)
-        self.mbox        = record.pop(0)
+        self.mbox        = class_names.getname(record.pop(0))
         self.subject     = record.pop(0)
         self.date        = record.pop(0)
         self.to          = record.pop(0)

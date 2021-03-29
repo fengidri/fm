@@ -17,8 +17,6 @@ sendmail = send.sendmail
 
 class Mbox(object):
     def __init__(self, mbox, thread = True, preload = 0, archived = 0):
-        mbox = os.path.basename(mbox)
-
         self.top = []
         self.isbuiltin = False
         self.thread_show = thread
