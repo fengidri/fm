@@ -104,6 +104,7 @@ class ClassNames(db_driver.Table):
         self.table = 'FMClass'
         self.db = db
         self.update()
+        self.unread_ev_cb = []
 
         self.unread = {}
         # unread status
@@ -113,6 +114,13 @@ class ClassNames(db_driver.Table):
         for mboxid, c in stats:
             mboxname = self.getname(mboxid)
             self.unread[mboxname] = c
+
+    def bind_ev_unread(self, cb):
+        self.unread_ev_cb.append(cb)
+
+    def call_ev_unread(self):
+        for cb in self.unread_ev_cb:
+            cb()
 
     def update(self):
         self.ids = {}
@@ -147,6 +155,20 @@ class ClassNames(db_driver.Table):
     def getname(self, _id):
         if _id in self.ids:
             return self.ids[_id]
+
+    def inc_unread(self, mbox):
+        if mbox in self.unread:
+            self.unread[mbox] += 1
+        else:
+            self.unread[mbox] = 1
+
+        self.call_ev_unread()
+
+    def dec_unread(self, mbox):
+        if mbox in self.unread:
+            self.unread[mbox] -= 1
+
+        self.call_ev_unread()
 
 class Topic(db_driver.Table):
     def __init__(self):

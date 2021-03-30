@@ -23,6 +23,9 @@ def boxes():
 def unread_stats():
     return db.class_names.unread
 
+def unread_ev_bind(cb):
+    db.class_names.bind_ev_unread(cb)
+
 class g:
     msgid = 0
 

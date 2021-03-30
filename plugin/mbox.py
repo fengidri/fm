@@ -35,6 +35,11 @@ def init():
     ui_mbox.show()
     ui_mbox.refresh()
 
+    def unread_change():
+        ui_mbox.refresh()
+
+    fm.unread_ev_bind(unread_change)
+
     if time.time() - fm.last_check_ts() > 60 * 5:
         check = time.localtime(fm.conf.mailbox.last_check)
         check = time.strftime("%y/%m/%d %H:%M", check)
