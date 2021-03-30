@@ -52,5 +52,6 @@ class Mbox(object):
 
     def mark_readed(self):
         db.index.filter(mbox = self.mbox).update(status = 1)
+        db.class_names.dec_unread(self.mbox, 0)
 
 

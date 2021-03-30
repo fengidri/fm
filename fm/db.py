@@ -164,9 +164,12 @@ class ClassNames(db_driver.Table):
 
         self.call_ev_unread()
 
-    def dec_unread(self, mbox):
+    def dec_unread(self, mbox, value = None):
         if mbox in self.unread:
             self.unread[mbox] -= 1
+
+        if value != None:
+            self.unread[mbox] = value
 
         self.call_ev_unread()
 
