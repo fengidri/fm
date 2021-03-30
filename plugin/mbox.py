@@ -18,7 +18,7 @@ def fm_mbox_list(node, listwin):
     for b in fm.boxes():
         u = unread.get(b, 0)
         if u:
-            show = '%s (%s)' % (b, u)
+            show = '%s %s' % (b.ljust(15), u)
         else:
             show = b
 
