@@ -292,7 +292,7 @@ class MailList(object):
 
     def list_handler(self, node, listwin):
         s = time.time()
-        mbox = fm.Mbox(g.mbox, g.thread, preload = 100,
+        mbox = g.mbox = fm.Mbox(g.mbox_name, g.thread, preload = 100,
                 archived = g.archived)
 
         if mbox.thread_show:
@@ -389,6 +389,10 @@ def MailMarkRead(cls):
         l,c = vim.current.window.cursor
         refresh = set_read(l - 1, True)
 
+    if cls == 'all':
+        g.mbox.mark_readed()
+        refresh = True
+
     if refresh:
         g.maillist.refresh()
 
@@ -477,6 +481,7 @@ menu = [
         ("Mark Mail Readed",            MailMarkRead, 'one'),
         ("Mark Mail Flag",              MailFlag),
         ("Mark Thread Readed",          MailMarkRead, 'thread'),
+        ("Mark All Readed",             MailMarkRead, 'all'),
 
         ("",                            None),
         ("====== fold/archived ======", None),

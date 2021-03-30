@@ -2,14 +2,15 @@
 
 
 
-thread               = True
-default              = None
-last_subject         = None
-header_raw           = False
-header_filter        = True
-pager_buf            = None
-pager_mail           = None
-mbox                 = None
+thread        = True
+default       = None
+last_subject  = None
+header_raw    = False
+header_filter = True
+pager_buf     = None
+pager_mail    = None
+mbox_name     = None
+mbox          = None
 
 config_short_time    = False
 config_relative_time = False

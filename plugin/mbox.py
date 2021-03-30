@@ -6,19 +6,21 @@ import g
 import popup
 
 def fm_mbox_handle(node, listwin):
-    g.mbox = node.ctx
+    g.mbox_name = node.ctx
 
     g.maillist.refresh()
 
 def fm_mbox_list(node, listwin):
-    node.append(frainui.Leaf('', None, None))
+    width = 15
+    show = (' ' * width) + 'Unread'
+    node.append(frainui.Leaf(show, None, None))
 
     unread = fm.unread_stats()
 
     for b in fm.boxes():
         u = unread.get(b, 0)
         if u:
-            show = '%s %s' % (b.ljust(15), u)
+            show = '%s%s' % (b.ljust(width), u)
         else:
             show = b
 

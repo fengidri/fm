@@ -50,5 +50,7 @@ class Mbox(object):
             m.output(o)
         return o
 
+    def mark_readed(self):
+        db.index.filter(mbox = self.mbox).update(status = 1)
 
 
