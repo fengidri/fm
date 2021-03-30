@@ -18,9 +18,8 @@ def fm_mbox_list(node, listwin):
         r = frainui.Leaf(b, b, fm_mbox_handle)
         node.append(r)
 
-        #if mdir.get('default'):
-        #    g.default = r
-
+        if not g.default:
+            g.default = r
 
 def init():
     ui_mbox = LIST("FM Mbox", fm_mbox_list, title = fm.conf.me)

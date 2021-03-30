@@ -30,6 +30,7 @@ class g:
     gid           = 0
     saved         = False
     current_fold = None
+    builin = False
 
 def get_path(*ns):
     ns = list(ns)
@@ -96,13 +97,14 @@ def check_mail_need_merge(mails):
     topic.topic_merge(topic_id, fr)
     return topic_id
 
-def save_mail_to_db(path, mbox, delay = False):
-    m = mail.Mail(path)
+def save_mail_to_db(m, mbox, delay = False):
     m.isnew = True
     m.mbox = mbox # for topic
 
     # 查找 thread 相关的 mails
     mails = db.index.relative(m)
+
+    s = time.time()
     if mails:
 
         # 合并 thread 到一个 topic id
@@ -139,84 +141,81 @@ def save_mail_to_db(path, mbox, delay = False):
     db.commit()
     return rowid, topic_id
 
-
-def save_mail(fold, dirname, m, mail, Id, uid):
-    uid = uid.decode('utf8')
-    Id = int(Id)
-
+def save_mail_file(mail, uid, dirname = None):
     g.gid += 1
-
-    # save mail to file
     filename = "%s-%s-%s.mail" % (uid, time.time(), g.gid)
+    path = os.path.join(conf.deliver, filename)
 
-    path = os.path.join(conf.deliver, dirname)
-    if not os.path.isdir(path):
-        os.mkdir(path)
-
-    path = os.path.join(path, filename)
+    if dirname: # for builin
+        path = os.path.join(path, dirname)
 
     open(path, 'wb').write(mail)
+    return path
 
-    # save mail to db
-    start = time.time()
-    rowid, topic_id = save_mail_to_db(path, dirname)
+
+def save_mail(fold, d, m, Id, start):
+
+    rowid, topic_id = save_mail_to_db(m, d)
     end = time.time()
 
     # save uid
-    save_uid(uid)
 
     g.saved = True
 
     # for log
-
-    s = m.get("Subject", '').replace('\n', ' ').replace('\r', '')
+    s = m.Subject()
 
     date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
     print("%s save %s:%s/%s to %s(rowid: %d topic_id: %d) %.3fs. %s" % (date,
-        fold, Id,
-        g.current_total, dirname, rowid, topic_id,  end - start, s))
+        fold, Id, g.current_total, d, rowid, topic_id,  end - start, s))
 
 
 def procmail(mail):
-    return _procmail.procmail(mail)
+    ds =  _procmail.procmail(mail)
+    return ds
 
-def procmails(fold, maillist):
-    for mail in maillist:
-        if mail == b')':
-            continue
+def procone(fold, Id, uid, msg):
+    s = time.time()
 
-        Id = mail[0].split()[0]
-        uid = mail[0].split()[2]
-        mail = mail[1]
 
-        m = email.message_from_bytes(mail)
-
+    if g.builin:
+        path = save_mail_file(msg, uid, g.current_fold)
+        ds = [g.current_fold]
+    else:
+        path = save_mail_file(msg, uid)
+        m = mail.Mail(path)
         ds = procmail(m)
-        for d in ds:
-            if d[0] == '>':
-                d = d[1:].strip()
-                if not d:
-                    continue
 
+    for d in ds:
+        if d[0] == '>':
+            d = d[1:].strip()
+            if not d:
                 continue
 
-            save_mail(fold, d, m, mail, Id, uid)
-
-
-def procmails_builin(fold, maillist):
-    for mail in maillist:
-        if mail == b')':
             continue
 
-        Id = mail[0].split()[0]
-        uid = mail[0].split()[2]
-        mail = mail[1]
+        if not m:
+            m = mail.Mail(path)
 
-        d = g.current_fold
-        save_mail(fold, d, mail, Id, uid)
+        save_mail(fold, d, m, Id, s)
+        m = None
 
-def do(conn, fold, last, callback):
+    save_uid(uid)
+
+def procmails(fold, maillist):
+    for raw in maillist:
+        if raw == b')':
+            continue
+
+        Id = raw[0].split()[0]
+        uid = raw[0].split()[2]
+
+        procone(fold, int(Id), uid.decode('utf8'), raw[1])
+
+def do(conn, fold, last, callback, builin = False):
+    g.builin = builin
+
     typ, [data] = conn.select('"%s"' % fold)
     if typ != 'OK':
         print("select to folder: %s. fail" % fold)
@@ -289,6 +288,11 @@ class Rebuild(object):
                 continue
 
             dirpath = os.path.join(conf.deliver, d)
+
+            if not os.path.isdir(dirpath):
+                handle(dirpath, None)
+                continue
+
             for f in os.listdir(dirpath):
                 if f[0] == '.':
                     continue
@@ -307,7 +311,15 @@ class Rebuild(object):
             print("process %d/%d done. spent: %d from start" % (self.i,
                 self.total, time.time() - self.start))
 
-        save_mail_to_db(path, d, delay = True)
+        m = mail.Mail(path)
+
+        if d == 'Sent':
+            ds = procmail(m)
+        else:
+            ds = procmail(m)
+
+        for d in ds:
+            save_mail_to_db(m, d, delay = True)
 
     def handle_sum(self, path, d):
         self.total += 1
@@ -355,7 +367,7 @@ def sync():
     fold = 'Sent'
     g.current_fold = fold
     last = get_last_uid()
-    do(conn, fold, last, procmails_builin)
+    do(conn, fold, last, procmails, builin = True)
 
     save_last_check()
 
