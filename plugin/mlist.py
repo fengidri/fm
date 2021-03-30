@@ -331,7 +331,7 @@ def MailFold():
 def TopicArchived():
     node, topic = get_node()
 
-    topic.set_archived(True)
+    topic.set_archived()
 
     g.maillist.refresh()
 

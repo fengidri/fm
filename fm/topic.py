@@ -66,6 +66,11 @@ class TopicDb(object):
         self.mbox     = db.class_names.getname(record.pop(0))
         self.first_ts = record.pop(0)
         self.last_ts  = record.pop(0)
+        self.sponsor  = record.pop(0)
+        self.participant  = record.pop(0)
+        self.mail_n  = record.pop(0)
+        self.thread_n  = record.pop(0)
+        self.archived  = record.pop(0)
 
         self.obj = obj
 
@@ -214,11 +219,11 @@ class Topic(object):
     def delete(self):
         db.topic.filter(id = self.db.id).delete()
 
-    def set_archived(self, flag):
-        if flag:
-            flag = 1
-        else:
+    def set_archived(self):
+        if self.db.archived:
             flag = 0
+        else:
+            flag = 1
 
         db.topic.filter(id = self.db.id).update(archived = flag)
 
