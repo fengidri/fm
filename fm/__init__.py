@@ -20,6 +20,9 @@ Mbox = mbox.Mbox
 def boxes():
     return db.class_names.array
 
+def unread_stats():
+    return db.class_names.unread
+
 class g:
     msgid = 0
 

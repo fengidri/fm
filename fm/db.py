@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS FMIndex
 index_sql0 = 'CREATE INDEX IF NOT EXISTS fmindex_topic_id ON FMIndex(topic_id);'
 index_sql1 = 'CREATE INDEX IF NOT EXISTS fmindex_msgid ON FMIndex(msgid);'
 index_sql2 = 'CREATE INDEX IF NOT EXISTS fmindex_irt ON FMIndex(in_reply_to);'
+index_sql3 = 'CREATE INDEX IF NOT EXISTS fmindex_status ON FMIndex(status);'
 
 topic_sql = '''
 CREATE TABLE IF NOT EXISTS FMTopic
@@ -91,6 +92,7 @@ class Db(db_driver.DB):
         c.execute(index_sql0)
         c.execute(index_sql1)
         c.execute(index_sql2)
+        c.execute(index_sql3)
 
         c.execute(topic_sql)
         c.execute(topic_sql1)
@@ -103,6 +105,14 @@ class ClassNames(db_driver.Table):
         self.db = db
         self.update()
 
+        self.unread = {}
+        # unread status
+        cmd = "select mbox,count(*) from FMIndex where status=0 group by mbox;"
+        self.db._exec(cmd)
+        stats = self.db.c.fetchall()
+        for mboxid, c in stats:
+            mboxname = self.getname(mboxid)
+            self.unread[mboxname] = c
 
     def update(self):
         self.ids = {}

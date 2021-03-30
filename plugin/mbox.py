@@ -13,9 +13,16 @@ def fm_mbox_handle(node, listwin):
 def fm_mbox_list(node, listwin):
     node.append(frainui.Leaf('', None, None))
 
-    for b in fm.boxes():
+    unread = fm.unread_stats()
 
-        r = frainui.Leaf(b, b, fm_mbox_handle)
+    for b in fm.boxes():
+        u = unread.get(b, 0)
+        if u:
+            show = '%s (%s)' % (b, u)
+        else:
+            show = b
+
+        r = frainui.Leaf(show, b, fm_mbox_handle)
         node.append(r)
 
         if not g.default:
