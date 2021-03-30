@@ -40,7 +40,9 @@ CREATE TABLE IF NOT EXISTS FMIndex
     topic_id    INT default 0
 );
 '''
-index_sql1 = 'CREATE INDEX IF NOT EXISTS mi ON FMIndex(msgid, mbox, in_reply_to, topic_id);'
+index_sql0 = 'CREATE INDEX IF NOT EXISTS fmindex_topic_id ON FMIndex(topic_id);'
+index_sql1 = 'CREATE INDEX IF NOT EXISTS fmindex_msgid ON FMIndex(msgid);'
+index_sql2 = 'CREATE INDEX IF NOT EXISTS fmindex_irt ON FMIndex(in_reply_to);'
 
 topic_sql = '''
 CREATE TABLE IF NOT EXISTS FMTopic
@@ -61,7 +63,7 @@ CREATE TABLE IF NOT EXISTS FMTopic
     archived    INT  default 0
 );
 '''
-topic_sql1 = 'CREATE INDEX IF NOT EXISTS ti ON FMTopic(mbox, topic, id);'
+topic_sql1 = 'CREATE INDEX IF NOT EXISTS ti ON FMTopic(mbox);'
 
 
 class Db(db_driver.DB):
@@ -84,8 +86,12 @@ class Db(db_driver.DB):
         c = conn.cursor()
 
         c.execute(class_sql)
+
         c.execute(index_sql)
+        c.execute(index_sql0)
         c.execute(index_sql1)
+        c.execute(index_sql2)
+
         c.execute(topic_sql)
         c.execute(topic_sql1)
 
