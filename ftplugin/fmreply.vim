@@ -1,5 +1,5 @@
 
-map <buffer> <F2> :MailPageMenu<cr>
+map <buffer> <F2> :MailReplyMenu<cr>
 map <buffer> m :MailPageMenu<cr>
 
 set preserveindent

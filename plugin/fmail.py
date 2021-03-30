@@ -34,7 +34,7 @@ def Mail():
 @pyvim.cmd()
 def MailMenu(sel = None):
     if not sel:
-        popup.PopupMenu(mlist.menu)
+        popup.PopupMenu(mlist.menu, hotkey = False, title = 'Fmail List Menu')
     elif sel == 'sort':
         mlist.switch_options('thread')
     elif sel == 'flag':
@@ -46,7 +46,7 @@ def MailMenu(sel = None):
 @pyvim.cmd()
 def MailPageMenu(sel = None):
     if not sel:
-        popup.PopupMenu(mpage.menu)
+        popup.PopupMenu(mpage.page_menu, hotkey = False, title = 'Fmail Page Menu')
     elif sel == 'reply':
         mpage.reply()
     elif sel == 'header':
@@ -56,6 +56,10 @@ def MailPageMenu(sel = None):
 
 
 
+@pyvim.cmd()
+def MailReplyMenu(sel = None):
+    if not sel:
+        popup.PopupMenu(mpage.reply_menu, hotkey = False, title = 'Fmail Reply Menu')
 
 
 

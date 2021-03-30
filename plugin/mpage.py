@@ -112,6 +112,7 @@ def mail_body(mail):
         if not r and in_reply:
             if 0 == mail.reply_index:
                 if len(mail.short_msg) < 80:
+                    mail.short_msg += ' '
                     mail.short_msg += line
 
 
@@ -357,18 +358,20 @@ def link_mail():
 
     popup.PopupRun("cat %s|grep '^Subject:'" % link)
 
-menu = [
+page_menu = [
             ("Reply ...",                   reply),
-            ("---------------------------", None),
-            ("Set Line Acked-By",           reply_by, 'Acked-by'),
-            ("Set Line Reviewed-By ",       reply_by, 'Reviewed-by'),
-            ("---------------------------", None),
+            ("===========================", None),
             ("Show raw headers",            switch_options, 'header'),
             ("Show other headers",          switch_options, 'filter'),
-            ("---------------------------", None),
-            ("Send ...",                    MailSend),
-            ("---------------------------", None),
-            ("GIT Commit log append",       mail_git_append),
+            ("===========================", None),
             ("Link mail to /tmp/mail.link", link_mail),
-            ("---------------------------", None),
+            ]
+
+reply_menu = [
+            ("Set Acked-By",                reply_by, 'Acked-by'),
+            ("Set Reviewed-By ",            reply_by, 'Reviewed-by'),
+            ("===========================", None),
+            ("GIT Commit log append",       mail_git_append),
+            ("===========================", None),
+            ("Send ...",                    MailSend),
             ]
