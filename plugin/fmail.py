@@ -19,6 +19,7 @@ import g
 
 @pyvim.cmd()
 def Mail():
+    fm.setup()
     b = vim.current.buffer
     if len(b) != 1:
         return

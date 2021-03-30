@@ -30,3 +30,15 @@ def gen_msgid():
 
 def last_check_ts():
     return conf.mailbox.last_check
+
+# fm will been loaded by vim plugin, so
+# init cannot happend when module load.
+# setup should called before use for vim
+def setup():
+    db.setup()
+
+try:
+    import vim
+except:
+    setup()
+

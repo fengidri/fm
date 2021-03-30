@@ -284,15 +284,17 @@ def commit():
 def set_delay():
     db.set_delay()
 
+def setup():
+    global db
+    global topic
+    global index
+    global class_names
 
-db = Db()
+    db = Db()
 
-topic = Topic()
-index = Index()
-class_names = ClassNames()
-
-
-
+    topic = Topic()
+    index = Index()
+    class_names = ClassNames()
 
 class MailFromDb(mail.M):
     def __init__(self, record):
