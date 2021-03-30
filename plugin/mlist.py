@@ -243,7 +243,7 @@ class MailList(object):
             node.append(frainui.Leaf('   ', None, None))
 
 
-    def list_thread(self, mbox, node):
+    def list_thread(self, mbox, node, start):
         topics = mbox.get_topics()
 
         node.append(frainui.Leaf('', None, None))
@@ -271,12 +271,12 @@ class MailList(object):
 
             node.append(n)
 
-        self.ui_list.title = "MBox: %s. Topic: %s. Archived: %s. Stash: %s." % (
-                g.mbox, len(topics), g.archived, len(g.stash))
+        self.ui_list.title = "MBox: %s. Time Spent: %.3fs Topic: %s. Archived: %s. Stash: %s." % (
+                g.mbox_name, time.time() - start, len(topics), g.archived, len(g.stash))
 
-    def list_plain(self, mbox, node):
+    def list_plain(self, mbox, node, start):
         ms = mbox.output(reverse=True)
-        self.ui_list.title = "MBox: %s num: %s" % (g.mbox, len(ms))
+        self.ui_list.title = "MBox: %s num: %s" % (g.mbox_name, len(ms))
 
         head = None
         node.append(frainui.Leaf('', None, None))
@@ -291,15 +291,14 @@ class MailList(object):
             node.append(l)
 
     def list_handler(self, node, listwin):
-        s = time.time()
+        start = time.time()
         mbox = g.mbox = fm.Mbox(g.mbox_name, g.thread, preload = 100,
                 archived = g.archived)
 
         if mbox.thread_show:
-            self.list_thread(mbox, node)
+            self.list_thread(mbox, node, start)
         else:
-            self.list_plain(mbox, node)
-        pyvim.echoline("list spent: %s" % (time.time() - s))
+            self.list_plain(mbox, node, start)
 
 
 def get_node(i = None):

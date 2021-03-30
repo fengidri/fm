@@ -144,10 +144,13 @@ def save_mail_to_db(m, mbox, delay = False):
 def save_mail_file(mail, uid, dirname = None):
     g.gid += 1
     filename = "%s-%s-%s.mail" % (uid, time.time(), g.gid)
-    path = os.path.join(conf.deliver, filename)
+
+    path = conf.deliver
 
     if dirname: # for builin
         path = os.path.join(path, dirname)
+
+    path = os.path.join(path, filename)
 
     open(path, 'wb').write(mail)
     return path
@@ -182,6 +185,7 @@ def procone(fold, Id, uid, msg):
     if g.builin:
         path = save_mail_file(msg, uid, g.current_fold)
         ds = [g.current_fold]
+        m = None
     else:
         path = save_mail_file(msg, uid)
         m = mail.Mail(path)
