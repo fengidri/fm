@@ -291,6 +291,7 @@ class MailList(object):
             node.append(l)
 
     def list_handler(self, node, listwin):
+        s = time.time()
         mbox = fm.Mbox(g.mbox, g.thread, preload = 100,
                 archived = g.archived)
 
@@ -298,6 +299,7 @@ class MailList(object):
             self.list_thread(mbox, node)
         else:
             self.list_plain(mbox, node)
+        pyvim.echoline("list spent: %s" % (time.time() - s))
 
 
 def get_node(i = None):
