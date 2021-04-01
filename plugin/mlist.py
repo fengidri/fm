@@ -100,7 +100,7 @@ class MailList(object):
 
         return date
 
-    def strline(self, m, head = None):
+    def strline1(self, m, head = None):
         if m.isnew and not m.From().isme:
             stat = '  *'
         else:
@@ -183,6 +183,65 @@ class MailList(object):
                 topic = '', # TODO
                 short_msg = m.short_msg[0:60],
                 topic_id=m.topic_id);
+
+    def strline(self, m, head = None):
+        if m.isnew and not m.From().isme:
+            stat = '  *'
+        else:
+            stat = '   '
+
+        if m.flag:
+            stat += '⚑'
+        else:
+            stat += ' '
+
+        date = self.strdate(m)
+        if time.time() - m.Date_ts() < 3600 * 24:
+            date = token(date, 'time')
+
+        f = m.From().short
+        if not f:
+            f = 'Me'
+
+        from_name = token(f, 'name')
+        subject = m.Subject().strip()
+
+        if m.parent:
+            i1 = m.parent.index * '|   '
+            prefix = '%s|---' %(i1, )
+        else:
+            prefix = ''
+
+        short_msg = ''
+        if m.hide_title:
+            subject = ''
+            short_msg = m.short_msg[0:60]
+        elif m.title() == g.last_title and m != m.thread_head and g.thread:
+            subject = ''
+            short_msg = m.short_msg[0:60]
+            m.hide_title = True
+        else:
+            g.last_title = m.title()
+
+        ext = ''
+        if g.exts:
+            if m == head:
+                ext += ' (%d)' % m.num()
+
+        if g.thread:
+            fmt = '{stat} {date} {prefix}{from_name}: {subject}{short_msg}'
+        else:
+            fmt = '{stat} {date} {subject} {topic}'
+
+        return fmt.format(
+                stat      = stat,
+                date      = date,
+                prefix    = prefix,
+                from_name = from_name,
+                subject   = subject,
+                short_msg = short_msg
+                )
+
 
     def mail_show(self, leaf, listwin):
         mail = leaf.ctx
