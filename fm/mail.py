@@ -21,15 +21,16 @@ conf = conf.conf
 
 
 def decode(h):
-    h = decode_header(h)[0]
-
-    if h[1]:
-        h = h[0].decode(h[1])
-    else:
-        h = h[0]
-        if isinstance(h, bytes):
-            h = h.decode("utf-8")
-    return h
+    o = []
+    for h in decode_header(h):
+        if h[1]:
+            h = h[0].decode(h[1])
+        else:
+            h = h[0]
+            if isinstance(h, bytes):
+                h = h.decode("utf-8")
+        o.append(h)
+    return ''.join(o)
 
 def header_parse_msgid(h):
     if not h:
@@ -265,7 +266,6 @@ class M(object):
         if self.isnew:
             self.isnew = False
             db.index.filter(rowid = self.rowid).update(status = 1)
-
             db.class_names.dec_unread(self.mbox)
 
         elif unread:
