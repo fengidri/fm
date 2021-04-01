@@ -283,6 +283,13 @@ def refresh_class():
             print("save mail to mbox %s: %s" % (d, m.subject))
             save_mail_to_db(m.path, d)
 
+def input(path):
+    m = mail.Mail(path)
+
+    ds = procmail(m)
+
+    for d in ds:
+        save_mail_to_db(m, d, delay = True)
 
 class Rebuild(object):
     def walk_mail_file(self, handle):
