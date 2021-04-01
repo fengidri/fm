@@ -51,6 +51,7 @@ def align_email_addr(buf, *c):
 
 
 def mail_body_quote_handler(line):
+    line = line.replace('\r', '')
     level = 0
     while True:
         if not line:
@@ -70,75 +71,75 @@ def mail_body_quote_handler(line):
 
     return level, ('> ' * level) + line
 
-def handle_reply(mail, line, i):
-    if line.strip() == '':
-        return False
-
-    if mail.first_reply_linenu == 0:
-        if line.endswith("wrote:"): # reply first line
-            return False
-
-        if line.startswith("From: "): # reply first line
-            return False
-
-        if line.startswith("Date: "): # reply first line
-            return False
-
-        mail.short_msg = line
-        mail.first_reply_linenu = i
-
-    return True
-
 def mail_body(mail):
     lines = []
     reply_n = 0
     in_reply = False
+    short_msg = []
+    last_line = None
+    head = True # before the first quote
+    block_is_empty = False
 
     mail.first_reply_linenu = 0
-    mail.reply_index = -1
 
     for i, line in enumerate(mail.Body().split('\n')):
-        line = line.replace('\r', '')
         r, line = mail_body_quote_handler(line)
-
-        if r and not in_reply:
-            pass
-
-        if r and in_reply:
-            lines.append(None)
-            in_reply = False
-            reply_n += 1
-
-        if not r and in_reply:
-            if 0 == mail.reply_index:
-                if len(mail.short_msg) < 80:
-                    mail.short_msg += ' '
-                    mail.short_msg += line
-
-
-        if not r and not in_reply:
-            in_reply = handle_reply(mail, line, i)
-            if in_reply:
-                mail.reply_index += 1
-
         lines.append(line)
 
-    if in_reply:
-        reply_n += 1
-        lines.append(None)
+        if head:
+            if line.strip() == '':
+                continue
 
-    ii = 0
-    for i, line in enumerate(lines):
-        if line == None:
-            ii += 1
-            if ii == reply_n:
-                lines[i] = '> === LAST REPLY ==='
+            if r:
+                head = False
+                if last_line:
+                    del short_msg[-1]
+
+                if not short_msg:
+                    mail.first_reply_linenu = 0
+            else:
+                last_line = line
+                short_msg.append(line)
+                if mail.first_reply_linenu == 0:
+                    mail.first_reply_linenu = i
+
+            continue
+
+        if not r: # this line is reply
+            if len(short_msg) < 5:
+                short_msg.append(line.strip())
+
+            if line.strip() != '':
+                block_is_empty = False
+
+                if mail.first_reply_linenu == 0:
+                    mail.first_reply_linenu = i
+
+        if r and in_reply: # go into quote
+            if not block_is_empty:
+                reply_n += 1
+                lines.insert(-1, reply_n)
+
+            in_reply = False
+
+        if not r and not in_reply: # go into reply
+            in_reply = True
+            block_is_empty = True
+
+
+    if in_reply and not block_is_empty:
+        reply_n += 1
+        lines.append(reply_n)
 
     o = []
-
     for line in lines:
-        if line != None:
+        if type(line) == int:
+            if line == reply_n:
+                o.append('> === LAST REPLY ===')
+        else:
             o.append(line)
+
+    mail.short_msg = ' '.join(short_msg)
 
     return o
 
@@ -217,6 +218,7 @@ def _mail_show(mail):
     b.append('=%s' % mail.path)
 
     vim.current.window.cursor = (mail.first_reply_linenu + header_num + 1, 0)
+    vim.command("normal zz")
 
 
 def show(mail):
