@@ -3,12 +3,14 @@ import frainui
 from frainui import LIST
 import fm
 import g
+import vim
 import popup
 
 def fm_mbox_handle(node, listwin):
     g.mbox_name = node.ctx
 
     g.maillist.refresh()
+    vim.current.window.cursor = (1, 0)
 
 def fm_mbox_list(node, listwin):
     width = 15
