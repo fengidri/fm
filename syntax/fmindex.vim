@@ -19,9 +19,11 @@ syn match CursorLineNr ' \.\.\.\.\.\.'
 
 syntax match FrainUiSig "\\name;" conceal cchar=\   contained
 syntax match FrainUiSig "\\time;" conceal cchar=\   contained
+syntax match FrainUiSig "\\shortmsg;" conceal cchar=\   contained
 syntax match FrainUiSig "\\end;"   conceal cchar=\   contained
 
 syntax match MailName   "\\name;[^\\]*\\end;"   contains=FrainUiSig
+syntax match String   "\\shortmsg;[^\\]*\\end;"   contains=FrainUiSig
 syntax match MailTime   "\\time;[^\\]*\\end;"   contains=FrainUiSig
 
 hi def link MailName MoreMsg

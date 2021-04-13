@@ -23,7 +23,6 @@ import mpage
 def token(t, tp):
     return '\\%s;%s\\end;' % (tp, t)
 
-
 def need_hide_subject(m):
     m.hide_subject = False
 
@@ -227,6 +226,9 @@ class MailList(object):
         if g.exts:
             if m == head:
                 ext += ' (%d)' % m.num()
+
+        if short_msg:
+            short_msg = token(short_msg, 'shortmsg')
 
         if g.thread:
             fmt = '{stat} {date} {prefix}{from_name}: {subject}{short_msg}'
