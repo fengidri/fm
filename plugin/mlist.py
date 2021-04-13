@@ -219,8 +219,7 @@ class MailList(object):
             subject = ''
             short_msg = m.short_msg[0:60]
             m.hide_title = True
-        else:
-            g.last_title = m.title()
+
 
         ext = ''
         if g.exts:
@@ -269,6 +268,8 @@ class MailList(object):
 
         ms = topic.output(reverse=True)
 
+        g.last_title = None
+
         head = None
         last = None
         hide_mail = False
@@ -288,6 +289,7 @@ class MailList(object):
 
             m.hide_title = False
             s = self.strline(m, head)
+            g.last_title = m.title()
 
             name = os.path.basename(m.path)
 
@@ -303,6 +305,7 @@ class MailList(object):
             node.append(frainui.Leaf('   === SOME MAIL HIDDEN ===', None, None))
             node.append(frainui.Leaf('   ', None, None))
 
+        g.last_title = None
 
     def list_thread(self, mbox, node, start):
         topics = mbox.get_topics()
