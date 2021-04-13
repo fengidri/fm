@@ -8,6 +8,10 @@
 syn match Identifier  'Reviewed-by'
 syn match Identifier  'Acked-by'
 syn match Identifier  'Signed-off-by'
+syn match Identifier  'Co-Developed-by'
+syn match ErrorMsg  'Fixes'
+syn match Type  'Link'
+syn match Type  'Reported-by'
 
 syn match MailLine1   '^>'
 syn match MailLine2   '^> >'lc=2
