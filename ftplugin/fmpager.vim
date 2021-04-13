@@ -1,6 +1,7 @@
 
 map <buffer> q :q<cr>
 map <buffer> <C-n> <C-w>hj<cr>
+map <buffer> <C-p> <C-w>hk<cr>
 
 setlocal buftype=nofile
 setlocal noswapfile

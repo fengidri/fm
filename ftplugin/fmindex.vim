@@ -14,3 +14,5 @@ map <buffer> m :MailMenu<cr>
 map <buffer> t :MailMenu sort<cr>
 map <buffer> f :MailMenu flag<cr>
 map <buffer> r :MailMenu refresh<cr>
+map <buffer> A :MailMenu archived<cr>
+map <buffer> F :MailMenu fold<cr>

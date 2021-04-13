@@ -41,6 +41,10 @@ def MailMenu(sel = None):
         mlist.MailFlag()
     elif sel == 'refresh':
         mlist.refresh()
+    elif sel == 'archived':
+        mlist.switch_options('archived')
+    elif sel == 'fold':
+        mlist.MailFold()
 
 
 @pyvim.cmd()

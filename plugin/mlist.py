@@ -533,20 +533,20 @@ def merge_topic():
 
 
 menu = [
-        ("Refresh.  From Local Db",     refresh),
-        ("Download. From Mail Server",  download),
+        ("Refresh.               r",    refresh),
+        ("Download.",  download),
 
         ("",                            None),
         ("====== mark ===============", None),
         ("Mark Mail Readed",            MailMarkRead, 'one'),
-        ("Mark Mail Flag",              MailFlag),
+        ("Mark Mail Flag         f",    MailFlag),
         ("Mark Thread Readed",          MailMarkRead, 'thread'),
         ("Mark All Readed",             MailMarkRead, 'all'),
 
         ("",                            None),
         ("====== fold/archived ======", None),
-        ("Archived Topic",              TopicArchived),
-        ("Fold Thread",                 MailFold),
+        ("Archived Topic         A",    TopicArchived),
+        ("Fold Thread            F",    MailFold),
         ("Fold Other Thread",           MailFoldOther),
 
         ("",                            None),
