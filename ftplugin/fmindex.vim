@@ -6,6 +6,8 @@ runtime ftplugin/frainuilist.vim
 map  <buffer> q :qa<cr>
 
 setlocal nowinfixwidth
+""setlocal cursorlineopt=number
+""set nu
 
 
 map <buffer> <C-n> j<cr>

@@ -23,8 +23,11 @@ syntax match FrainUiSig "\\shortmsg;" conceal cchar=\   contained
 syntax match FrainUiSig "\\end;"   conceal cchar=\   contained
 
 syntax match MailName   "\\name;[^\\]*\\end;"   contains=FrainUiSig
-syntax match String   "\\shortmsg;[^\\]*\\end;"   contains=FrainUiSig
+syntax match MailShortMsg   "\\shortmsg;[^\\]*\\end;"   contains=FrainUiSig
 syntax match MailTime   "\\time;[^\\]*\\end;"   contains=FrainUiSig
 
 hi def link MailName MoreMsg
 hi def link MailTime Type
+hi MailShortMsg guifg=#867979
+hi clear  CursorLine
+hi def CursorLine  cterm=underline

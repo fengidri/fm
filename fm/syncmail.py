@@ -289,7 +289,8 @@ def input(path):
     ds = procmail(m)
 
     for d in ds:
-        save_mail_to_db(m, d, delay = True)
+        save_mail_to_db(m, d)
+        print("save mail(%s) %s to mbox %s" % (path, m.Subject(), d))
 
 class Rebuild(object):
     def walk_mail_file(self, handle):
