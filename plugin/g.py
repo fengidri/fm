@@ -13,7 +13,7 @@ pager_mail    = None
 mbox_name     = None
 mbox          = None
 
-topic_defopen = True
+topic_defopen = False
 
 config_short_time    = False
 config_relative_time = False

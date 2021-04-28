@@ -68,17 +68,19 @@ def db_load_topic(mbox, archived):
 class TopicDb(object):
     def __init__(self, record, obj):
         record = list(record)
-        self.rowid    = record.pop(0)
-        self.id       = record.pop(0)
-        self.topic    = record.pop(0)
-        self.mbox     = db.class_names.getname(record.pop(0))
-        self.first_ts = record.pop(0)
-        self.last_ts  = record.pop(0)
-        self.sponsor  = record.pop(0)
-        self.participant  = record.pop(0)
-        self.mail_n  = record.pop(0)
-        self.thread_n  = record.pop(0)
-        self.archived  = record.pop(0)
+        self.rowid       = record.pop(0)
+        self.id          = record.pop(0)
+        self.topic       = record.pop(0)
+        self.mbox        = db.class_names.getname(record.pop(0))
+        self.first_ts    = record.pop(0)
+        self.last_ts     = record.pop(0)
+        self.sponsor     = record.pop(0)
+        self.participant = record.pop(0)
+        self.mail_n      = record.pop(0)
+        self.thread_n    = record.pop(0)
+        self.archived    = record.pop(0)
+        self.fold        = record.pop(0)
+        self.unread      = record.pop(0)
 
         self.obj = obj
 
@@ -267,6 +269,9 @@ class Topic(object):
 
     def get_id(self):
         return self.db.id
+
+    def get_unread(self):
+        return self.db.unread
 
     def get_threads(self):
         return self.db.tops

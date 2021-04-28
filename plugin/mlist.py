@@ -328,7 +328,13 @@ class MailList(object):
             else:
                 prefix = ' '
 
-            line = prefix + topic.topic()
+
+            if topic.get_unread():
+                unread = '%2d ' % topic.get_unread()
+            else:
+                unread = '   '
+
+            line = prefix + unread + topic.topic()
 
             if g.exts:
                 e = ' id: %d' % topic.get_id()
