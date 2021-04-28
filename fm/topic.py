@@ -108,14 +108,15 @@ class TopicDb(object):
             # handler for the same mail
 
             if l.mbox == 'Sent':
+                if l.isnew:
+                    l.mark_readed()
                 self.mail_map[msgid] = m
                 self.mail_list.remove(l)
                 self.mail_list.append(m)
 
-            elif m.mbox == 'Sent':
-                pass
-
             else:
+                if m.isnew:
+                    m.mark_readed()
                 self.left.append(m)
 
         self.mail_list.sort(key = lambda x: x.Date_ts())

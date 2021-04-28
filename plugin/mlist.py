@@ -184,10 +184,12 @@ class MailList(object):
                 topic_id=m.topic_id);
 
     def strline(self, m, head = None):
-        if m.isnew and not m.From().isme:
-            stat = '  *'
-        else:
-            stat = '   '
+        stat = '   '
+        if m.isnew:
+            if m.From().isme:
+                m.mark_readed()
+            else:
+                stat = '  *'
 
         if m.flag:
             stat += '⚑'

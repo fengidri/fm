@@ -60,6 +60,9 @@ index_sql3 = 'CREATE INDEX IF NOT EXISTS fmindex_status ON FMIndex(status);'
 
 id 如果不指定就是 rowid, 必要的情况下可以手动指定, 以创建相同 topic_id 的 topic
 
+fold 用于记录用户 fold/unfold  操作
+unread 记录 topic_id 下面的unread 的邮件的数量
+
 """
 topic_sql = '''
 CREATE TABLE IF NOT EXISTS FMTopic
@@ -77,7 +80,10 @@ CREATE TABLE IF NOT EXISTS FMTopic
 
     mail_n      INT  default 0,
     thread_n    INT  default 0,
-    archived    INT  default 0
+    archived    INT  default 0,
+    fold        INT  default 0,
+
+    unread      INT default 0
 );
 '''
 topic_sql1 = 'CREATE INDEX IF NOT EXISTS ti ON FMTopic(mbox);'
@@ -115,22 +121,24 @@ class Db(db_driver.DB):
 
         conn.commit()
 
+def unread():
+    cmd = "select mbox,sum(unread) from FMTopic where unread > 0 group by mbox;"
+    db._exec(cmd)
+
+    u = db.c.fetchall()
+    U = {}
+
+    for mboxid, c in u:
+        U[class_names.getname(mboxid)] = c
+
+    return U
+
 class ClassNames(db_driver.Table):
     def __init__(self):
         self.table = 'FMClass'
         self.db = db
         self.update()
         self.unread_ev_cb = []
-
-        self.unread = {}
-        # unread status
-        # FIXME: mail maybe belong to multi topic by mbox
-        cmd = "select mbox,count(*) from FMIndex where status=0 group by mbox;"
-        self.db._exec(cmd)
-        stats = self.db.c.fetchall()
-        for mboxid, c in stats:
-            mboxname = self.getname(mboxid)
-            self.unread[mboxname] = c
 
     def bind_ev_unread(self, cb):
         self.unread_ev_cb.append(cb)
@@ -173,21 +181,17 @@ class ClassNames(db_driver.Table):
         if _id in self.ids:
             return self.ids[_id]
 
-    def inc_unread(self, mbox):
-        if mbox in self.unread:
-            self.unread[mbox] += 1
-        else:
-            self.unread[mbox] = 1
-
+    def inc_unread(self, topic_id):
+        db.topic.filter(id = topic_id).update_exp("unread = unread + 1").update()
+        db.commit()
         self.call_ev_unread()
 
-    def dec_unread(self, mbox, value = None):
-        if mbox in self.unread:
-            self.unread[mbox] -= 1
-
-        if value != None:
-            self.unread[mbox] = value
-
+    def dec_unread(self, topic_id = None, mbox = False):
+        if mbox:
+            topic.filter(mbox = mbox).update(unread = 0)
+        else:
+            topic.filter(id = topic_id).update_exp("unread = unread - 1").update()
+        db.commit()
         self.call_ev_unread()
 
 class Topic(db_driver.Table):

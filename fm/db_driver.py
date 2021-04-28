@@ -1,5 +1,10 @@
 # -*- coding:utf-8 -*-
 
+class SqlExpression(object):
+    def __init__(self, exp):
+        self.exp = exp
+
+
 class SqlFormat(object):
     def insert_format(self, table):
         row = self.__dict__
@@ -59,6 +64,7 @@ class Filter(object):
         self.kv_handle = getattr(table, 'kv_handle', None)
         self.db = table.db
         self.where = []
+        self.update_kv = []
 
         self.filter(**f)
 
@@ -114,15 +120,23 @@ class Filter(object):
         else:
             return ret
 
+    def update_exp(self, exp):
+        self.update_kv.append(exp)
+        self.update_kv.append(',')
+        return self
+
     def update(self, **kv):
         cmd = []
         cmd.append('update')
         cmd.append(self.table)
         cmd.append('set')
 
+        cmd.extend(self.update_kv)
+
         for k,v in kv.items():
             if self.kv_handle:
                 k, v = self.kv_handle(k, v)
+
             cmd.append('%s=' % k)
 
             if isinstance(v, str):
@@ -134,6 +148,7 @@ class Filter(object):
 
         cmd[-1] = 'where'
         cmd.extend(self.get_where())
+
         cmd = ' '.join(cmd)
 
         self.db._exec(cmd)

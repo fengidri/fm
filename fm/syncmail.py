@@ -139,7 +139,9 @@ def save_mail_to_db(m, mbox, delay = False):
     """
         注意: 这里可能是多个不同 mbox 但 id 相同的 topic
     """
-    db.topic.filter(id = topic_id).update(last_ts = m.Date_ts(), archived = 0)
+    tp = db.topic.filter(id = topic_id)
+    tp.update_exp("unread=unread + 1")
+    tp.update(last_ts = m.Date_ts(), archived = 0)
 
     db.commit()
     return rowid, topic_id

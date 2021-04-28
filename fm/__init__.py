@@ -21,7 +21,7 @@ def boxes():
     return db.class_names.array
 
 def unread_stats():
-    return db.class_names.unread
+    return db.unread()
 
 def unread_ev_bind(cb):
     db.class_names.bind_ev_unread(cb)
