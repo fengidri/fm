@@ -27,7 +27,7 @@ if args.rebuild_db:
     sys.exit(0)
 
 if args.refresh_class:
-    fm.syncmail.refresh_class()
+    fm.syncmail.refresh_class(['Sent', 'me'])
     sys.exit(0)
 
 if args.loop:

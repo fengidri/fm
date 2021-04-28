@@ -15,6 +15,12 @@ CREATE TABLE IF NOT EXISTS FMClass
 );
 '''
 
+"""
+    FMINdex 里面的 mbox 意义不大.
+
+    所有的基于 msgid, in-reply-to 相关的邮件使用相同的 topic_id.
+    也可以手动把不相关的邮件设置到一起, 也有相同的 topic_id
+"""
 index_sql = '''
 CREATE TABLE IF NOT EXISTS FMIndex
 (
@@ -45,6 +51,16 @@ index_sql1 = 'CREATE INDEX IF NOT EXISTS fmindex_msgid ON FMIndex(msgid);'
 index_sql2 = 'CREATE INDEX IF NOT EXISTS fmindex_irt ON FMIndex(in_reply_to);'
 index_sql3 = 'CREATE INDEX IF NOT EXISTS fmindex_status ON FMIndex(status);'
 
+"""
+
+所有的邮件只有一份, 相关的邮件都使用同一个 topic id.
+
+如果 topic 可以归于多个 mbox, 是使用创建独立的 topic 来实现的
+这些 topic 的 topic_id 是一样的, 但是其 mbox 不同.
+
+id 如果不指定就是 rowid, 必要的情况下可以手动指定, 以创建相同 topic_id 的 topic
+
+"""
 topic_sql = '''
 CREATE TABLE IF NOT EXISTS FMTopic
 (
@@ -108,6 +124,7 @@ class ClassNames(db_driver.Table):
 
         self.unread = {}
         # unread status
+        # FIXME: mail maybe belong to multi topic by mbox
         cmd = "select mbox,count(*) from FMIndex where status=0 group by mbox;"
         self.db._exec(cmd)
         stats = self.db.c.fetchall()
@@ -178,11 +195,19 @@ class Topic(db_driver.Table):
         self.table = 'FMTopic'
         self.db = db
 
-    def insert(self, topic, id = None):
+    def insert(self, topic, id = None, mbox = None):
+        """
+            这个调用有两种情况:
+            1. 一个是新的基于 mail 创建的 topic, 自身插入
+            2. topic 是一个旧的 topic, 新创建一个新的纪录, mbox 不同
+        """
         sql = db_driver.SqlFormat()
 
+        if not mbox:
+            mbox = topic.mbox
+
         sql.topic       = topic.topic()
-        sql.mbox        = class_names.getid(topic.mbox)
+        sql.mbox        = class_names.getid(mbox)
         sql.last_ts     = topic.timestamp()
         sql.first_ts    = topic.timestamp()
         sql.sponsor     = ''

@@ -31,6 +31,7 @@ def fm_mbox_list(node, listwin):
 
         if not g.default:
             g.default = r
+            g.default_mbox_name = b
 
 def init():
     ui_mbox = LIST("FM Mbox", fm_mbox_list, title = fm.conf.me)

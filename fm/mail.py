@@ -45,6 +45,7 @@ def header_parse_msgid(h):
             return ''
 
         return h[0:p + 1]
+    return ''
 
 
 

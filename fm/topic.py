@@ -14,6 +14,14 @@ def batch_load_mails(topics):
     for topic in topics:
         topic.load(mails = ms.get(topic.db.id, []))
 
+"""
+    创建一个新的 topic 纪录, 但是 mbox 不同
+"""
+def topic_dup(topic, mbox):
+    db.topic.insert(topic, id = topic.get_id(), mbox = mbox)
+
+# 合并多个 mail 到同一个 topic, 如果有多个 mbox
+# 存在, 就为对应的 mbox 创建一条相同 topic_id 的 topic 纪录
 def topic_merge(dst, src):
     db.set_delay()
 
@@ -261,3 +269,16 @@ class Topic(object):
 
     def get_threads(self):
         return self.db.tops
+
+    # move topic to other mbox, such as move to the focus mbox,
+    def set_mbox(self, mbox):
+        """
+            TODO 手动设置的 mbox 分类, 要增加标记, 这样不会在 refresh_class 的
+            被删除掉.
+        """
+        db.topic.filter(id = self.db.id).update(mbox = mbox)
+        self.mbox = mbox
+        self.db.mbox = mbox
+
+    def get_mbox(self):
+        return self.db.mbox

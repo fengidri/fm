@@ -136,6 +136,9 @@ def save_mail_to_db(m, mbox, delay = False):
 
         rowid = db.index.insert(m, mbox, topic_id)
 
+    """
+        注意: 这里可能是多个不同 mbox 但 id 相同的 topic
+    """
     db.topic.filter(id = topic_id).update(last_ts = m.Date_ts(), archived = 0)
 
     db.commit()
@@ -246,42 +249,53 @@ def do(conn, fold, last, callback, builin = False):
         resp, data = conn.uid('fetch', i, '(RFC822)')
         callback(fold, data)
 
-def refresh_class():
-    # 对于所有的已经在数据库里面的邮件基于 procmail 进行重新分类
-    start = time.time()
+def check_class(topics, mbox_ignore):
+    mbox_new = []
+    mbox_old = []
 
-    mails = db.index.filter().select()
+    topic_id = topics[0].get_id()
+    for tp in topics:
+        mbox_old.append(tp.get_mbox())
 
-    mbox = {}
-
+    mails = db.index.filter(topic_id = topic_id).select()
     for m in mails:
-        b = m.mbox
-        if b == 'Sent':
-            continue
-
-        if b not in mbox:
-            mbox[b] = []
-
-        mbox[b].append(m.Message_id())
-
-    for m in mails:
-        b = m.mbox
-        if b == 'Sent':
-            continue
-
-        s = time.time()
-
-        mid = m.Message_id()
         ds = procmail(m)
-        for d in ds:
-            if d[0] == '>':
-                continue
+        mbox_new.extend(ds)
 
-            if d in mbox and mid in mbox[d]:
-                continue
+    mbox_new = set(mbox_new)
+    # 创建新的分类(mbox)对应的 topic 纪录
+    for mbox in mbox_new:
+        if mbox not in mbox_old:
+            print("create new topic [%s] %s" % (mbox, topics[0].topic()))
+            topic.topic_dup(topics[0], mbox)
 
-            print("save mail to mbox %s: %s" % (d, m.subject))
-            save_mail_to_db(m.path, d)
+    # 删除旧的分类(mbox)对应的 topic 纪录
+    for mbox in mbox_old:
+        if mbox in mbox_ignore:
+            continue
+
+        if mbox in mbox_new:
+            continue
+
+        print("delete topic [%s] %s" % (mbox, topics[0].topic()))
+
+        db.topic.filter(id = topic_id, mbox = mbox).delete()
+
+def refresh_class(mbox_ignore):
+    # 对于所有的已经在数据库里面的邮件基于 procmail 进行重新分类
+
+    """
+    mbox 的管理方式参考, db 里面 topic 表的设计
+    """
+    topics = defaultdict(list)
+
+    # 聚合相同 topic_id 的 topic
+    for t in db.topic.filter().select():
+        topics[t.get_id()].append(t)
+
+    for tps in topics.values():
+        check_class(tps, mbox_ignore)
+
 
 def input(path):
     m = mail.Mail(path)

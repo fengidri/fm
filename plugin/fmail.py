@@ -42,7 +42,7 @@ def MailMenu(sel = None):
     elif sel == 'refresh':
         mlist.refresh()
     elif sel == 'archived':
-        mlist.switch_options('archived')
+        mlist.TopicArchived()
     elif sel == 'fold':
         mlist.MailFold()
 

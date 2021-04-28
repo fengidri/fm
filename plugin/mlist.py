@@ -534,6 +534,13 @@ def merge_topic():
     g.stash_info = []
     g.tips.close()
 
+def move_to_default():
+    node, obj = get_node()
+
+    if g.default_mbox_name:
+        obj.set_mbox(g.default_mbox_name)
+
+
 
 menu = [
         ("Refresh.               r",    refresh),
@@ -551,13 +558,14 @@ menu = [
         ("Archived Topic         A",    TopicArchived),
         ("Fold Thread            F",    MailFold),
         ("Fold Other Thread",           MailFoldOther),
+        ("Move Default Mbox",           move_to_default),
 
         ("",                            None),
         ("====== show opt ===========", None),
-        ("Toggle Thread/Plain",         switch_options, 'thread'),
-        ("Toggle archived",             switch_options, 'archived'),
-        ("Toggle ext info",             switch_options, "exts"),
-        ("Toggle fold",                 switch_options, "fold"),
+        ("Show Archived",               switch_options, 'archived'),
+        ("Show Plain",                  switch_options, 'thread'),
+        ("Show Ext info",               switch_options, "exts"),
+        ("Show Fold",                   switch_options, "fold"),
 
         ("",                            None),
         ("====== option =============", None),
