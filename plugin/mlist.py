@@ -315,12 +315,13 @@ class MailList(object):
         node.append(frainui.Leaf('', None, None))
 
         for topic in topics:
-            if topic.loaded():
-                defopen = True
-            else:
-                defopen = False
-                if topic.get_id() in g.topic_opend:
+            defopen = False
+            if g.topic_defopen:
+                if topic.loaded():
                     defopen = True
+                else:
+                    if topic.get_id() in g.topic_opend:
+                        defopen = True
 
             if topic.get_id() in g.stash:
                 prefix = ' @'
@@ -474,6 +475,8 @@ def switch_options(target):
     if target == 'fold':
         g.fold_hide = not g.fold_hide
 
+    if target == 'defopen':
+        g.topic_defopen = not g.topic_defopen
     g.maillist.refresh()
 
 def refresh():
@@ -568,6 +571,7 @@ menu = [
         ("Show Plain",                  switch_options, 'thread'),
         ("Show Ext info",               switch_options, "exts"),
         ("Show Fold",                   switch_options, "fold"),
+        ("Show Topic Fold",             switch_options, "defopen"),
 
         ("",                            None),
         ("====== option =============", None),
