@@ -122,7 +122,7 @@ class Db(db_driver.DB):
         conn.commit()
 
 def unread():
-    cmd = "select mbox,sum(unread) from FMTopic where unread > 0 group by mbox;"
+    cmd = "select mbox,count(*) from FMTopic where unread > 0 group by mbox;"
     db._exec(cmd)
 
     u = db.c.fetchall()
