@@ -13,7 +13,7 @@ def fm_mbox_handle(node, listwin):
     vim.current.window.cursor = (1, 0)
 
 def fm_mbox_list(node, listwin):
-    width = 15
+    width = 19
     show = (' ' * width) + 'Unread'
     node.append(frainui.Leaf(show, None, None))
 

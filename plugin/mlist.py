@@ -322,6 +322,13 @@ class MailList(object):
                 else:
                     if topic.get_id() in g.topic_opend:
                         defopen = True
+            else:
+                if topic.get_unread():
+                    defopen = True
+
+                if time.time() - topic.timestamp() < 3600 * 24:
+                    defopen = True
+
 
             if topic.get_id() in g.stash:
                 prefix = ' @'
