@@ -4,7 +4,6 @@
 
 thread        = True
 default       = None
-default_mbox_name = None
 last_subject  = None
 header_raw    = False
 header_filter = True

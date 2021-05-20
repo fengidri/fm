@@ -336,7 +336,7 @@ class MailList(object):
                 prefix = ' '
 
 
-            if topic.get_unread():
+            if topic.get_unread() > 0:
                 unread = '%2d ' % topic.get_unread()
             else:
                 unread = '   '
@@ -552,11 +552,20 @@ def merge_topic():
     g.stash_info = []
     g.tips.close()
 
-def move_to_default():
+def move_to_mbox():
     node, obj = get_node()
 
-    if g.default_mbox_name:
-        obj.set_mbox(g.default_mbox_name)
+    sel = fm.boxes()
+
+    def f(i):
+        if i < 0:
+            return
+
+        mbox = sel[i]
+        obj.set_mbox(mbox)
+        g.maillist.refresh()
+
+    popup.PopupSelect(sel, f, title='Select Mbox. <esc> cancel')
 
 
 
@@ -576,7 +585,7 @@ menu = [
         ("Archived Topic         A",    TopicArchived),
         ("Fold Thread            F",    MailFold),
         ("Fold Other Thread",           MailFoldOther),
-        ("Move Default Mbox",           move_to_default),
+        ("Move Mbox",                   move_to_mbox),
 
         ("",                            None),
         ("====== show opt ===========", None),
