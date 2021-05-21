@@ -125,6 +125,8 @@ def mail_body(mail):
         if not r and not in_reply: # go into reply
             in_reply = True
             block_is_empty = True
+            if line.strip() != '':
+                block_is_empty = False
 
 
     if in_reply and not block_is_empty:
