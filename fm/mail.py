@@ -268,11 +268,13 @@ class M(object):
             self.isnew = False
             db.index.filter(rowid = self.rowid).update(status = 1)
             db.class_names.dec_unread(self.topic_id)
+            self.topic.unread_update(-1)
 
         elif unread:
             self.isnew = True
             db.index.filter(rowid = self.rowid).update(status = 0)
             db.class_names.inc_unread(self.topic_id)
+            self.topic.unread_update(1)
 
         if thread:
             for sub in self.sub_thread:

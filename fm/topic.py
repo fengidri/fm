@@ -274,6 +274,10 @@ class Topic(object):
     def get_unread(self):
         return self.db.unread
 
+    # called by mail, when mail unread status change
+    def unread_update(self, v):
+        self.db.unread += v
+
     def get_threads(self):
         return self.db.tops
 

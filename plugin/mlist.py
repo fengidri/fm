@@ -170,6 +170,12 @@ class MailList(object):
 
             leaf.update(self.strline(mail))
 
+            father = leaf.father
+            topic = father.ctx
+
+            prefix, line = self.topic_line(topic)
+            father.update(line, prefix)
+
         mpage.show(mail)
 
         # for short_msg
@@ -213,6 +219,7 @@ class MailList(object):
 
             l = frainui.Leaf(name, m, self.mail_show, display = s,
                     last_win=True, noindent = True)
+
             node.append(l)
             last = l
 
