@@ -81,6 +81,7 @@ class TopicDb(object):
         self.archived    = record.pop(0)
         self.fold        = record.pop(0)
         self.unread      = record.pop(0)
+        self.ignore      = record.pop(0)
 
         self.obj = obj
 
@@ -285,6 +286,18 @@ class Topic(object):
         db.topic.filter(id = self.db.id).update(mbox = mbox)
         self.mbox = mbox
         self.db.mbox = mbox
+
+    def set_ignore(self):
+        if self.db.ignore:
+            v = 0
+        else:
+            v = 1
+
+        db.topic.filter(id = self.db.id).update(ignore = v)
+        self.db.ignore = v
+
+    def get_ignore(self):
+        return self.db.ignore
 
     def get_mbox(self):
         return self.db.mbox

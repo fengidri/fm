@@ -329,17 +329,21 @@ class MailList(object):
                 if time.time() - topic.timestamp() < 3600 * 24:
                     defopen = True
 
+            if topic.get_ignore():
+                defopen = False
 
             if topic.get_id() in g.stash:
                 prefix = ' @'
             else:
                 prefix = ' '
 
-
-            if topic.get_unread() > 0:
-                unread = '%2d ' % topic.get_unread()
+            if topic.get_ignore():
+                    unread = 'I  '
             else:
-                unread = '   '
+                if topic.get_unread() > 0:
+                    unread = '%2d ' % topic.get_unread()
+                else:
+                    unread = '   '
 
             line = prefix + unread + topic.topic()
 
@@ -475,6 +479,12 @@ def MailMarkRead(cls):
     if refresh:
         g.maillist.refresh()
 
+def MailMarkIgnore():
+    node, obj = get_node()
+    obj.set_ignore()
+    g.maillist.refresh()
+    g.ui_mbox.refresh()
+
 def switch_options(target):
     if target == 'thread':
         g.thread = not g.thread
@@ -490,6 +500,8 @@ def switch_options(target):
 
     if target == 'defopen':
         g.topic_defopen = not g.topic_defopen
+
+
     g.maillist.refresh()
 
 def refresh():
@@ -565,7 +577,7 @@ def move_to_mbox():
         obj.set_mbox(mbox)
         g.maillist.refresh()
 
-    popup.PopupSelect(sel, f, title='Select Mbox. <esc> cancel')
+    popup.PopupSelect(sel, f, title='Select Mbox. <esc> cancel', maxwidth=40)
 
 
 
@@ -579,6 +591,7 @@ menu = [
         ("Mark Mail Flag         f",    MailFlag),
         ("Mark Thread Readed",          MailMarkRead, 'thread'),
         ("Mark All Readed",             MailMarkRead, 'all'),
+        ("Mark Ignore            I",    MailMarkIgnore),
 
         ("",                            None),
         ("====== fold/archived ======", None),

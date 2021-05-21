@@ -83,7 +83,8 @@ CREATE TABLE IF NOT EXISTS FMTopic
     archived    INT  default 0,
     fold        INT  default 0,
 
-    unread      INT default 0
+    unread      INT default 0,
+    ignore      INT default 0
 );
 '''
 topic_sql1 = 'CREATE INDEX IF NOT EXISTS ti ON FMTopic(mbox);'
@@ -122,7 +123,7 @@ class Db(db_driver.DB):
         conn.commit()
 
 def unread():
-    cmd = "select mbox,count(*) from FMTopic where unread > 0 group by mbox;"
+    cmd = "select mbox,count(*) from FMTopic where unread > 0 and ignore = 0 group by mbox;"
     db._exec(cmd)
 
     u = db.c.fetchall()

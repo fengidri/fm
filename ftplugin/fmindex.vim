@@ -18,3 +18,5 @@ map <buffer> f :MailMenu flag<cr>
 map <buffer> r :MailMenu refresh<cr>
 map <buffer> A :MailMenu archived<cr>
 map <buffer> F :MailMenu fold<cr>
+map <buffer> I :MailMenu ignore<cr>
+

@@ -45,6 +45,8 @@ def MailMenu(sel = None):
         mlist.TopicArchived()
     elif sel == 'fold':
         mlist.MailFold()
+    elif sel == 'ignore':
+        mlist.MailMarkIgnore()
 
 
 @pyvim.cmd()
