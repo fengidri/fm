@@ -34,20 +34,18 @@ def Mail():
 @pyvim.cmd()
 def MailMenu(sel = None):
     if not sel:
-        popup.PopupMenu(mlist.menu, hotkey = False, title = 'Fmail List Menu')
-    elif sel == 'sort':
-        mlist.switch_options('thread')
-    elif sel == 'flag':
-        mlist.MailFlag()
-    elif sel == 'refresh':
-        mlist.refresh()
-    elif sel == 'archived':
-        mlist.TopicArchived()
-    elif sel == 'fold':
-        mlist.MailFold()
-    elif sel == 'ignore':
-        mlist.MailMarkIgnore()
+        menu = []
+        for m in mlist.menu:
+            menu.append(m[1:])
 
+        popup.PopupMenu(menu, hotkey = False, title = 'Fmail List Menu')
+    else:
+        for m in mlist.menu:
+            if m[0] == sel:
+                if len(m) == 4:
+                    m[2](m[3])
+                else:
+                    m[2]()
 
 @pyvim.cmd()
 def MailPageMenu(sel = None):

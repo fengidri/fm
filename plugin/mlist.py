@@ -99,97 +99,13 @@ class MailList(object):
 
         return date
 
-    def strline1(self, m, head = None):
-        if m.isnew and not m.From().isme:
-            stat = '  *'
-        else:
-            stat = '   '
-
-        if m.flag:
-            stat += '⚑'
-        else:
-            stat += ' '
-
-        date = self.strdate(m)
-        if time.time() - m.Date_ts() < 3600 * 24:
-            date = token(date, 'time')
-
-        f = m.From().short
-        if not f:
-            f = 'Me'
-
-        f = token(f, 'name')
-
-        if m.hide_title:
-            subject = f
-            f = None
-        elif m.title() == g.last_title and m != m.thread_head and g.thread:
-            subject = f
-            f = None
-            m.hide_title = True
-        else:
-            g.last_title = m.title()
-            subject =  m.Subject().strip()
-            subject = '%s: %s' %(f, subject)
-
-        if m.parent:
-            i1 = m.parent.index * '|   '
-            prefix = '%s|---' %(i1, )
-            subject = prefix + subject
-
-        l = 120
-
-        if m.fold:
-            suffix = ' ......'
-            l = l - len(suffix)
-            if len(subject) > l:
-                subject = subject[0: l]
-            else:
-                subject = subject.ljust(l)
-
-            subject += suffix
-
-        else:
-            if len(subject) >= l:
-                if f:
-                    suffix = '...'
-                    subject = subject[0:l - len(suffix)]
-                    subject += suffix
-            else:
-                subject = subject.ljust(l)
-
-
-        ext = ''
-        if m == head:
-            ext += ' (%d)' % m.num()
-
-        if g.exts:
-            fmt = '{stat} {subject} {date} {ext} {mbox} {rowid} {topic_id}'
-        elif g.thread:
-            if m.short_msg:
-                fmt = '{stat} {date} {subject} | {short_msg}'
-            else:
-                fmt = '{stat} {date} {subject}'
-        else:
-            fmt = '{stat} {date} {subject} {topic}'
-
-        return fmt.format(stat = stat,
-                subject = subject,
-                date = date,
-                ext = ext,
-                mbox = m.mbox,
-                rowid = m.rowid,
-                topic = '', # TODO
-                short_msg = m.short_msg[0:60],
-                topic_id=m.topic_id);
-
     def strline(self, m, head = None):
         stat = '   '
         if m.isnew:
             if m.From().isme:
                 m.mark_readed()
             else:
-                stat = '  *'
+                stat = '*  '
 
         if m.flag:
             stat += '⚑'
@@ -232,9 +148,9 @@ class MailList(object):
             short_msg = token(short_msg, 'shortmsg')
 
         if g.thread:
-            fmt = '{stat} {date} {prefix}{from_name}: {subject}{short_msg}'
+            fmt = '{stat}  {date} {prefix}{from_name}: {subject}{short_msg}'
         else:
-            fmt = '{stat} {date} {subject} {topic}'
+            fmt = ' {stat} {date} {subject} {topic}'
 
         return fmt.format(
                 stat      = stat,
@@ -309,49 +225,63 @@ class MailList(object):
 
         g.last_title = None
 
-    def list_thread(self, mbox, node, start):
+    def topic_defopen(self, topic):
+        defopen = False
+
+        if topic.get_ignore():
+            return False
+
+        if g.topic_defopen:
+            if topic.loaded():
+                defopen = True
+            else:
+                if topic.get_id() in g.topic_opend:
+                    defopen = True
+        else:
+            if topic.get_unread():
+                defopen = True
+
+            if time.time() - topic.timestamp() < 3600 * 24:
+                defopen = True
+
+        return defopen
+
+    def topic_line(self, topic):
+        if topic.get_id() in g.stash:
+            unread = '@  '
+        else:
+            if topic.get_ignore():
+                    unread = 'I  '
+                    unread = token(unread, 'unread')
+            else:
+                if topic.get_unread() > 0:
+                    unread = '%-2d ' % topic.get_unread()
+                    unread = token(unread, 'unread')
+                else:
+                    unread = '   '
+
+        prefix = unread
+        line = topic.topic()
+
+        if g.exts:
+            e = ' id: %d' % topic.get_id()
+            line += e
+
+        return prefix, ' ' + line
+
+    def list_topic(self, mbox, node, start):
         topics = mbox.get_topics()
 
         node.append(frainui.Leaf('', None, None))
 
         for topic in topics:
-            defopen = False
-            if g.topic_defopen:
-                if topic.loaded():
-                    defopen = True
-                else:
-                    if topic.get_id() in g.topic_opend:
-                        defopen = True
-            else:
-                if topic.get_unread():
-                    defopen = True
+            defopen = self.topic_defopen(topic)
+            prefix, line = self.topic_line(topic)
 
-                if time.time() - topic.timestamp() < 3600 * 24:
-                    defopen = True
-
-            if topic.get_ignore():
-                defopen = False
-
-            if topic.get_id() in g.stash:
-                prefix = ' @'
-            else:
-                prefix = ' '
-
-            if topic.get_ignore():
-                    unread = 'I  '
-            else:
-                if topic.get_unread() > 0:
-                    unread = '%2d ' % topic.get_unread()
-                else:
-                    unread = '   '
-
-            line = prefix + unread + topic.topic()
-
-            if g.exts:
-                e = ' id: %d' % topic.get_id()
-                line += e
-
-            n = frainui.Node(line, topic, self.topic_list, isdir = False, defopen = defopen)
+            n = frainui.Node(line, topic, self.topic_list,
+                    isdir = False,
+                    defopen = defopen,
+                    prefix = prefix)
 
             node.append(n)
 
@@ -380,7 +310,7 @@ class MailList(object):
                 archived = g.archived)
 
         if mbox.thread_show:
-            self.list_thread(mbox, node, start)
+            self.list_topic(mbox, node, start)
         else:
             self.list_plain(mbox, node, start)
 
@@ -582,40 +512,40 @@ def move_to_mbox():
 
 
 menu = [
-        ("Refresh.               r",    refresh),
-        ("Download.",  download),
+        ("Refresh",  "Refresh.               r",    refresh),
+        (None,       "Download.",                   download),
 
-        ("",                            None),
-        ("====== mark ===============", None),
-        ("Mark Mail Readed",            MailMarkRead, 'one'),
-        ("Mark Mail Flag         f",    MailFlag),
-        ("Mark Thread Readed",          MailMarkRead, 'thread'),
-        ("Mark All Readed",             MailMarkRead, 'all'),
-        ("Mark Ignore            I",    MailMarkIgnore),
+        (None,       "",                            None),
+        (None,       "====== mark ===============", None),
+        (None,       "Mark Mail Readed",            MailMarkRead, 'one'),
+        ("Flag",     "Mark Mail Flag         f",    MailFlag),
+        (None,       "Mark Thread Readed",          MailMarkRead, 'thread'),
+        (None,       "Mark All Readed",             MailMarkRead, 'all'),
+        ("Ignore",   "Mark Ignore            I",    MailMarkIgnore),
 
-        ("",                            None),
-        ("====== fold/archived ======", None),
-        ("Archived Topic         A",    TopicArchived),
-        ("Fold Thread            F",    MailFold),
-        ("Fold Other Thread",           MailFoldOther),
-        ("Move Mbox",                   move_to_mbox),
+        (None,       "",                            None),
+        (None,       "====== fold/archived ======", None),
+        ("Archived", "Archived Topic         A",    TopicArchived),
+        ("Fold",     "Fold Thread            F",    MailFold),
+        (None,       "Fold Other Thread",           MailFoldOther),
+        (None,       "Move Mbox",                   move_to_mbox),
 
-        ("",                            None),
-        ("====== show opt ===========", None),
-        ("Show Archived",               switch_options, 'archived'),
-        ("Show Plain",                  switch_options, 'thread'),
-        ("Show Ext info",               switch_options, "exts"),
-        ("Show Fold",                   switch_options, "fold"),
-        ("Show Topic Fold",             switch_options, "defopen"),
+        (None,       "",                            None),
+        (None,       "====== show opt ===========", None),
+        (None,       "Show Archived",               switch_options, 'archived'),
+        (None,       "Show Plain",                  switch_options, 'thread'),
+        (None,       "Show Ext info",               switch_options, "exts"),
+        (None,       "Show Fold",                   switch_options, "fold"),
+        (None,       "Show Topic Fold",             switch_options, "defopen"),
 
-        ("",                            None),
-        ("====== option =============", None),
-        ("Create Mail",                 MailNew),
-        ("Delete Mail/Topic",           MailDel),
+        (None,       "",                            None),
+        (None,       "====== option =============", None),
+        (None,       "Create Mail",                 MailNew),
+        (None,       "Delete Mail/Topic",           MailDel),
 
-        ("",                            None),
-        ("====== topic merge ========", None),
-        ("Push topic to stash",         push_to_stash),
-        ("Clear stash",                 clear_stash),
-        ("Merge stash to current Topic",merge_topic),
+        (None,       "",                            None),
+        (None,       "====== topic merge ========", None),
+        (None,       "Push topic to stash",         push_to_stash),
+        (None,       "Clear stash",                 clear_stash),
+        (None,       "Merge stash to current Topic",merge_topic),
         ]

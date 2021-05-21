@@ -13,10 +13,9 @@ setlocal nowinfixwidth
 map <buffer> <C-n> j<cr>
 map <buffer> <F2> :MailMenu<cr>
 map <buffer> m :MailMenu<cr>
-map <buffer> t :MailMenu sort<cr>
-map <buffer> f :MailMenu flag<cr>
-map <buffer> r :MailMenu refresh<cr>
-map <buffer> A :MailMenu archived<cr>
-map <buffer> F :MailMenu fold<cr>
-map <buffer> I :MailMenu ignore<cr>
+map <buffer> f :MailMenu Flag<cr>
+map <buffer> r :MailMenu Refresh<cr>
+map <buffer> A :MailMenu Archived<cr>
+map <buffer> F :MailMenu Fold<cr>
+map <buffer> I :MailMenu Ignore<cr>
 
