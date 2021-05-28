@@ -20,6 +20,9 @@ Mbox = mbox.Mbox
 def boxes():
     return db.class_names.array
 
+def boxes_move(name, up = True):
+    db.class_names.sort_move(name, up)
+
 def unread_stats():
     return db.unread()
 

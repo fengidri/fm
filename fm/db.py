@@ -162,6 +162,33 @@ class ClassNames(db_driver.Table):
             self.ids[_id] = name
             self.names[name] = _id
 
+    def sort_move(self, name, up = True):
+        self.update()
+
+        if name not in self.array:
+            return
+
+        index = self.array.index(name)
+        if index == 0 and up:
+            return
+
+        if index == len(self.array) - 1 and not up:
+            return
+
+        if up:
+            index = index - 1
+        else:
+            index = index + 1
+
+        self.array.remove(name)
+        self.array.insert(index, name)
+
+        for i, n in enumerate(self.array):
+            self.filter(mbox = n).update(sort = i)
+
+        self.update()
+
+
     def getid(self, name):
         if name in self.names:
             return self.names[name]

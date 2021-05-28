@@ -4,6 +4,7 @@ from frainui import LIST
 import fm
 import g
 import vim
+import pyvim
 import popup
 
 def fm_mbox_handle(node, listwin):
@@ -33,7 +34,8 @@ def fm_mbox_list(node, listwin):
             g.default = r
 
 def init():
-    ui_mbox = LIST("FM Mbox", fm_mbox_list, title = fm.conf.me)
+    ui_mbox = LIST("FM Mbox", fm_mbox_list, title = fm.conf.me,
+            ft='fmmbox')
     ui_mbox.show()
     ui_mbox.refresh()
 
@@ -48,3 +50,21 @@ def init():
         popup.PopupDialog('\n\n\t\tNotify: Last Check Is ' + check)
 
     g.ui_mbox = ui_mbox
+
+@pyvim.cmd()
+def MailMboxSort(direct):
+    node = g.ui_mbox.getnode(None)
+    if not node:
+        return
+
+    if not node.ctx:
+        return
+
+    mbox = node.ctx
+    if direct == 'up':
+        fm.boxes_move(mbox, True)
+    else:
+        fm.boxes_move(mbox, False)
+
+    g.ui_mbox.refresh()
+
