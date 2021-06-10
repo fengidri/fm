@@ -229,7 +229,7 @@ class Topic(object):
         return tp
 
     def delete(self):
-        db.topic.filter(id = self.db.id).delete()
+        db.topic.filter(rowid = self.db.rowid).delete()
 
     def set_archived(self):
         if self.db.archived:
@@ -287,7 +287,7 @@ class Topic(object):
             TODO 手动设置的 mbox 分类, 要增加标记, 这样不会在 refresh_class 的
             被删除掉.
         """
-        db.topic.filter(id = self.db.id).update(mbox = mbox)
+        db.topic.filter(rowid = self.db.rowid).update(mbox = mbox)
         self.mbox = mbox
         self.db.mbox = mbox
 
@@ -297,7 +297,7 @@ class Topic(object):
         else:
             v = 1
 
-        db.topic.filter(id = self.db.id).update(ignore = v)
+        db.topic.filter(rowid = self.db.rowid).update(ignore = v)
         self.db.ignore = v
 
     def get_ignore(self):
