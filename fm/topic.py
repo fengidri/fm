@@ -33,6 +33,9 @@ def topic_merge(dst, src):
 
     for i in src:
         mails = db.index.filter(topic_id = i).select()
+        if i == dst:
+            continue
+
         for m in mails:
             if m.mbox not in mboxs:
                 mboxs.append(m.mbox)
