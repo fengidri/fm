@@ -24,6 +24,9 @@ sys.path.insert(0, os.path.dirname(conf.procmail))
 
 import procmail as _procmail
 
+import signal
+
+signal.signal(signal.SIGHUP, signal.SIG_IGN)
 
 class g:
     current_total = None
@@ -31,6 +34,15 @@ class g:
     saved         = False
     current_fold = None
     builin = False
+    logfd = open(conf.log_path, 'a')
+
+
+
+def log(msg):
+    t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    m = "%s %s\n" % (t, msg)
+    g.logfd.write(m)
+    g.logfd.flush()
 
 def get_path(*ns):
     ns = list(ns)
@@ -175,7 +187,7 @@ def save_mail(fold, d, m, Id, start):
 
     date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
-    print("%s save %s:%s/%s to %s(rowid: %d topic_id: %d) %.3fs. %s" % (date,
+    log("%s save %s:%s/%s to %s(rowid: %d topic_id: %d) %.3fs. %s" % (date,
         fold, Id, g.current_total, d, rowid, topic_id,  end - start, s))
 
 
@@ -227,7 +239,7 @@ def do(conn, fold, last, callback, builin = False):
 
     typ, [data] = conn.select('"%s"' % fold)
     if typ != 'OK':
-        print("select to folder: %s. fail" % fold)
+        log("select to folder: %s. fail" % fold)
         sys.exit(-1)
 
 
@@ -268,7 +280,7 @@ def check_class(topics, mbox_ignore):
     # 创建新的分类(mbox)对应的 topic 纪录
     for mbox in mbox_new:
         if mbox not in mbox_old:
-            print("create new topic [%s] %s" % (mbox, topics[0].topic()))
+            log("create new topic [%s] %s" % (mbox, topics[0].topic()))
             topic.topic_dup(topics[0], mbox)
 
     # 删除旧的分类(mbox)对应的 topic 纪录
@@ -279,7 +291,7 @@ def check_class(topics, mbox_ignore):
         if mbox in mbox_new:
             continue
 
-        print("delete topic [%s] %s" % (mbox, topics[0].topic()))
+        log("delete topic [%s] %s" % (mbox, topics[0].topic()))
 
         db.topic.filter(id = topic_id, mbox = mbox).delete()
 
@@ -306,7 +318,7 @@ def input(path):
 
     for d in ds:
         save_mail_to_db(m, d)
-        print("save mail(%s) %s to mbox %s" % (path, m.Subject(), d))
+        log("save mail(%s) %s to mbox %s" % (path, m.Subject(), d))
 
 class Rebuild(object):
     def walk_mail_file(self, handle):
@@ -336,7 +348,7 @@ class Rebuild(object):
     def handle_mail(self, path, d):
         self.i += 1
         if self.i % 500 == 0:
-            print("process %d/%d done. spent: %d from start" % (self.i,
+            log("process %d/%d done. spent: %d from start" % (self.i,
                 self.total, time.time() - self.start))
 
         m = mail.Mail(path)
@@ -362,17 +374,19 @@ class Rebuild(object):
 
         db.commit() # for delay
 
-        print("rebuild db spent: %d/%d" % (time.time() - self.start, self.i))
+        log("rebuild db spent: %d/%d" % (time.time() - self.start, self.i))
 
 
 def sync():
+    log("start sync ...")
+
     conn = imaplib.IMAP4_SSL(host = conf.server, port = conf.port)
 
     while True:
         try:
             typ, [data] = conn.login(conf.user, conf.password)
             if typ != 'OK':
-                print("login fail" % fold)
+                log("login fail" % fold)
                 return
             break
         except:
@@ -380,7 +394,7 @@ def sync():
             continue
 
     if os.path.isfile(conf.synclock):
-        print("%s locked" % conf.synclock)
+        log("%s locked" % conf.synclock)
         return
 
     open(conf.synclock, 'w').close()

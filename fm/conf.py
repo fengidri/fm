@@ -39,4 +39,6 @@ class Conf:
 
         self.mailbox = MailBox(c.get('user'))
 
+        self.log_path = os.path.join(self.deliver, "mails.log")
+
 conf = Conf()
