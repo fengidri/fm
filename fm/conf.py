@@ -10,7 +10,10 @@ class MailBox(object):
         l = os.path.expanduser("~/.fm.d/")
         l = os.path.join(l, email)
         l = os.path.join(l, 'last_check')
-        self.last_check = float(open(l).read())
+        if os.path.isfile(l):
+            self.last_check = float(open(l).read())
+        else:
+            self.last_check = 0
 
 class Conf:
     def __init__(self):

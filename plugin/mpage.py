@@ -239,7 +239,7 @@ def current_mail():
     path = line[1:]
     return fm.Mail(path)
 
-def reply():
+def reply(_):
     line = vim.current.buffer[-1]
     if line[0] != '=':
         return
@@ -311,7 +311,7 @@ def mail_send_handler(popup, path):
 
     popup.append('send fail')
 
-def MailSend():
+def MailSend(_):
     vim.command("update")
 
     path = vim.current.buffer.name
@@ -336,7 +336,7 @@ def reply_by(h):
     l = vim.current.window.cursor[0] - 1
     b[l] = '%s: %s <%s>' % (h, fm.conf.name, fm.conf.me)
 
-def mail_git_append():
+def mail_git_append(_):
     m = current_mail()
     subject = m.Subject()
     pos = subject.find(']')
@@ -346,7 +346,7 @@ def mail_git_append():
     line = vim.current.line
     vgit.options.commit_log_append(line, target = subject)
 
-def link_mail():
+def link_mail(_):
 
     line = vim.current.buffer[-1]
     if line[0] != '=':
@@ -362,20 +362,20 @@ def link_mail():
 
     popup.PopupRun("cat %s|grep '^Subject:'" % link)
 
-page_menu = [
-            ("Reply ...",                   reply),
-            ("===========================", None),
-            ("Show raw headers",            switch_options, 'header'),
-            ("Show other headers",          switch_options, 'filter'),
-            ("===========================", None),
-            ("Link mail to /tmp/mail.link", link_mail),
-            ]
+PopupMenuItem = popup.PopupMenuItem
 
-reply_menu = [
-            ("Set Acked-By",                reply_by, 'Acked-by'),
-            ("Set Reviewed-By ",            reply_by, 'Reviewed-by'),
-            ("===========================", None),
-            ("GIT Commit log append",       mail_git_append),
-            ("===========================", None),
-            ("Send ...",                    MailSend),
-            ]
+page_menu = []
+page_menu.append(PopupMenuItem("Reply ...",                   reply))
+page_menu.append(PopupMenuItem("==========================="))
+page_menu.append(PopupMenuItem("Show raw headers",            switch_options, 'header'))
+page_menu.append(PopupMenuItem("Show other headers",          switch_options, 'filter'))
+page_menu.append(PopupMenuItem("==========================="))
+page_menu.append(PopupMenuItem("Link mail to /tmp/mail.link", link_mail))
+
+reply_menu = []
+reply_menu.append(PopupMenuItem("Set Acked-By",                reply_by, 'Acked-by'))
+reply_menu.append(PopupMenuItem("Set Reviewed-By ",            reply_by, 'Reviewed-by'))
+reply_menu.append(PopupMenuItem("===========================", None))
+reply_menu.append(PopupMenuItem("GIT Commit log append",       mail_git_append))
+reply_menu.append(PopupMenuItem("===========================", None))
+reply_menu.append(PopupMenuItem("Send ...",                    MailSend))

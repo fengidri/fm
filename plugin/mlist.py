@@ -333,7 +333,7 @@ def get_node(i = None):
     return node, node.ctx
 
 
-def MailDel():
+def MailDel(_):
     node, obj = get_node()
 
     # obj may be topic
@@ -342,7 +342,7 @@ def MailDel():
 
     g.maillist.refresh()
 
-def MailFold():
+def MailFold(_):
     node, mail = get_node()
 
     mail.mark_readed(True)
@@ -350,14 +350,14 @@ def MailFold():
 
     g.maillist.refresh()
 
-def TopicArchived():
+def TopicArchived(_):
     node, topic = get_node()
 
     topic.set_archived()
 
     g.maillist.refresh()
 
-def MailFoldOther():
+def MailFoldOther(_):
     node, mail = get_node()
 
     head = mail.thread_head
@@ -374,7 +374,7 @@ def MailFoldOther():
 
     g.maillist.refresh()
 
-def MailFlag():
+def MailFlag(_):
     node, mail = get_node()
 
     if mail.flag:
@@ -416,7 +416,7 @@ def MailMarkRead(cls):
     if refresh:
         g.maillist.refresh()
 
-def MailMarkIgnore():
+def MailMarkIgnore(_):
     node, obj = get_node()
     obj.set_ignore()
     g.maillist.refresh()
@@ -441,10 +441,10 @@ def switch_options(target):
 
     g.maillist.refresh()
 
-def refresh():
+def refresh(_):
     g.maillist.refresh()
 
-def download():
+def download(_):
     popup.PopupRun(fm.syncmail.sync, title = 'fm mail sync',
             maxwidth=160,
             wrap = False)
@@ -452,7 +452,7 @@ def download():
     g.maillist.refresh()
 
 @pyvim.cmd()
-def MailNew():
+def MailNew(_ = None):
     path = '~/.fm.d/draft/%s.mail' % time.time()
     path = os.path.expanduser(path)
 
@@ -472,7 +472,7 @@ def MailNew():
     b.append('')
 
 
-def push_to_stash():
+def push_to_stash(_):
     node, obj = get_node()
     g.stash.append(obj.get_id())
     g.maillist.refresh()
@@ -483,14 +483,14 @@ def push_to_stash():
 
     g.tips = popup.PopupTips(g.stash_info)
 
-def clear_stash():
+def clear_stash(_):
     g.stash = []
     g.stash_info = []
     g.tips.close()
 
     g.maillist.refresh()
 
-def merge_topic():
+def merge_topic(_):
     node, obj = get_node()
 
     obj.merge(g.stash)
@@ -501,7 +501,7 @@ def merge_topic():
     g.stash_info = []
     g.tips.close()
 
-def move_to_mbox():
+def move_to_mbox(_):
     node, obj = get_node()
 
     sel = fm.boxes()
@@ -517,42 +517,47 @@ def move_to_mbox():
     popup.PopupSelect(sel, f, title='Select Mbox. <esc> cancel', maxwidth=40)
 
 
+menu = []
 
-menu = [
-        ("Refresh",  "Refresh.               r",    refresh),
-        (None,       "Download.",                   download),
 
-        (None,       "",                            None),
-        (None,       "====== mark ===============", None),
-        (None,       "Mark Mail Readed",            MailMarkRead, 'one'),
-        ("Flag",     "Mark Mail Flag         f",    MailFlag),
-        (None,       "Mark Thread Readed",          MailMarkRead, 'thread'),
-        (None,       "Mark All Readed",             MailMarkRead, 'all'),
-        ("Ignore",   "Mark Ignore            I",    MailMarkIgnore),
+def m_append(show, call = None, arg = None, key = None):
+    i = popup.PopupMenuItem(show, call, arg)
+    i.key = key
+    menu.append(i)
 
-        (None,       "",                            None),
-        (None,       "====== fold/archived ======", None),
-        ("Archived", "Archived Topic         A",    TopicArchived),
-        ("Fold",     "Fold Thread            F",    MailFold),
-        (None,       "Fold Other Thread",           MailFoldOther),
-        (None,       "Move Mbox",                   move_to_mbox),
+m_append("Refresh.               r", refresh, None, "Refresh")
+m_append("Download.", download)
 
-        (None,       "",                            None),
-        (None,       "====== show opt ===========", None),
-        (None,       "Show Archived",               switch_options, 'archived'),
-        (None,       "Show Plain",                  switch_options, 'thread'),
-        (None,       "Show Ext info",               switch_options, "exts"),
-        (None,       "Show Fold",                   switch_options, "fold"),
-        (None,       "Show Topic Fold",             switch_options, "defopen"),
+m_append("")
+m_append("====== mark ===============")
+m_append("Mark Mail Readed",         MailMarkRead,   'one')
+m_append("Mark Mail Flag         f", MailFlag,       None, "Flag")
+m_append("Mark Thread Readed",       MailMarkRead,   'thread')
+m_append("Mark All Readed",          MailMarkRead,   'all')
+m_append("Mark Ignore            I", MailMarkIgnore, None, "Ignore")
 
-        (None,       "",                            None),
-        (None,       "====== option =============", None),
-        (None,       "Create Mail",                 MailNew),
-        (None,       "Delete Mail/Topic",           MailDel),
+m_append("")
+m_append("====== fold/archived ======")
+m_append("Archived Topic         A", TopicArchived, None, "Archived")
+m_append("Fold Thread            F", MailFold, None, "Fold")
+m_append("Fold Other Thread",        MailFoldOther)
+m_append("Move Mbox",                move_to_mbox)
 
-        (None,       "",                            None),
-        (None,       "====== topic merge ========", None),
-        (None,       "Push topic to stash",         push_to_stash),
-        (None,       "Clear stash",                 clear_stash),
-        (None,       "Merge stash to current Topic",merge_topic),
-        ]
+m_append("")
+m_append("====== show opt ===========")
+m_append("Show Archived",   switch_options, 'archived')
+m_append("Show Plain",      switch_options, 'thread')
+m_append("Show Ext info",   switch_options, "exts")
+m_append("Show Fold",       switch_options, "fold")
+m_append("Show Topic Fold", switch_options, "defopen")
+
+m_append("")
+m_append("====== option =============")
+m_append("Create Mail",                 MailNew)
+m_append("Delete Mail/Topic",           MailDel)
+
+m_append("")
+m_append("====== topic merge ========")
+m_append("Push topic to stash",         push_to_stash)
+m_append("Clear stash",                 clear_stash)
+m_append("Merge stash to current Topic",merge_topic)

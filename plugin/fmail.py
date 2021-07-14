@@ -34,25 +34,19 @@ def Mail():
 @pyvim.cmd()
 def MailMenu(sel = None):
     if not sel:
-        menu = []
-        for m in mlist.menu:
-            menu.append(m[1:])
-
-        popup.PopupMenu(menu, hotkey = False, title = 'Fmail List Menu')
+        popup.PopupMenu(mlist.menu, hotkey = False, title = 'Fmail List Menu')
     else:
         for m in mlist.menu:
-            if m[0] == sel:
-                if len(m) == 4:
-                    m[2](m[3])
-                else:
-                    m[2]()
+            if m.key == sel:
+                m.callback(m)
+                break
 
 @pyvim.cmd()
 def MailPageMenu(sel = None):
     if not sel:
         popup.PopupMenu(mpage.page_menu, hotkey = False, title = 'Fmail Page Menu')
     elif sel == 'reply':
-        mpage.reply()
+        mpage.reply(None)
     elif sel == 'header':
         mpage.switch_options('header')
         mpage.switch_options('filter')
