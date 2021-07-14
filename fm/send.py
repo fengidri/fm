@@ -85,11 +85,11 @@ def sendmail(popup, path, imap = False):
         if code:
             return
 
-    cstr = open(path).read()
+    #cstr = open(path).read()
 
-    name = os.path.basename(path)
-    sent = os.path.expanduser(os.path.join('~/.fm.d/sent', name))
-    open(sent, 'w').write(cstr)
+    #name = os.path.basename(path)
+    #sent = os.path.expanduser(os.path.join('~/.fm.d/sent', name))
+    #open(sent, 'w').write(cstr)
 
-    os.remove(path)
+    #os.remove(path)
     return True

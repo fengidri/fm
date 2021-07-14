@@ -274,6 +274,9 @@ class Topic(object):
     def get_id(self):
         return self.db.id
 
+    def get_rowid(self):
+        return self.db.rowid
+
     def get_unread(self):
         return self.db.unread
 

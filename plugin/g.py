@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 
+from collections import defaultdict
 
 
 thread        = True
@@ -28,3 +29,13 @@ auto_markreaded = True
 # show archived topic
 archived = 0
 fold_hide = True
+
+# cache for reply file.
+# key: mail path
+# value: [reply path, send status]
+path_reply = defaultdict(list)
+head_mail_reply = defaultdict(list)
+topic_reply = defaultdict(list)
+
+# cache for path -> mail id, head mail id, topic id
+cache_mail_topic = {}

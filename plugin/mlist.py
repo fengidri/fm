@@ -41,6 +41,18 @@ def need_hide_subject(m):
 
 
 
+def check_reply(d, key):
+    v = d.get(key)
+    if not v:
+        return False
+
+    for r in v:
+        if not r[1]: # reply not send
+            return True
+
+    return False
+
+
 class MailList(object):
     def __init__(self):
         ui_list = LIST("FM List", self.list_handler, ft='fmindex',
@@ -161,6 +173,14 @@ class MailList(object):
                 short_msg = short_msg
                 )
 
+    def reply_edit(self, leaf, listwin):
+        mail = leaf.ctx
+
+        mpage.reply_edit(mail)
+
+        g.pager_buf = vim.current.buffer
+        g.pager_mail = mail
+
 
     def mail_show(self, leaf, listwin):
         mail = leaf.ctx
@@ -184,6 +204,24 @@ class MailList(object):
         g.pager_buf = vim.current.buffer
         g.pager_mail = mail
 
+    def check_reply(self, node, mail):
+        reply = g.path_reply.get(mail.path)
+        if not reply:
+            return
+
+        for r in reply:
+            if r[1]:
+                continue
+
+            m = fm.Mail(r[0])
+
+            name = (" " * 30)  + "Reply-UNDONE"
+
+            l = frainui.Leaf(name, m, self.reply_edit,
+                    display = name, last_win=True, noindent = True)
+
+            node.append(l)
+
     def topic_list(self, node, listwin):
         topic = node.ctx
         topic.load()
@@ -205,7 +243,9 @@ class MailList(object):
                     node.append(frainui.Leaf('', None, None))
                     last = None
 
-            if g.fold_hide and head.fold and head.news() == 0:
+            has_reply = check_reply(g.head_mail_reply, head.rowid)
+
+            if g.fold_hide and head.fold and head.news() == 0 and not has_reply:
                 hide_mail = True
                 continue
 
@@ -222,6 +262,8 @@ class MailList(object):
 
             node.append(l)
             last = l
+
+            self.check_reply(node, m)
 
         if last:
             node.append(frainui.Leaf('', None, None))
@@ -246,7 +288,11 @@ class MailList(object):
                     defopen = True
         else:
             if topic.get_unread():
-                defopen = True
+                return True
+
+            defopen = check_reply(g.topic_reply, topic.get_rowid())
+            if defopen:
+                return True
 
             if time.time() - topic.timestamp() < 3600 * 24:
                 defopen = True

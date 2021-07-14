@@ -227,6 +227,9 @@ def show(mail):
     vim.command("set filetype=fmpager")
     vim.command("setlocal modifiable")
 
+    g.cache_mail_topic[mail.path] = (mail.rowid,
+            mail.thread_head.rowid, mail.topic.get_rowid())
+
     _mail_show(mail)
 
     vim.command("setlocal nomodifiable")
@@ -239,13 +242,31 @@ def current_mail():
     path = line[1:]
     return fm.Mail(path)
 
+def reply_edit(mail):
+    vim.command('e ' + mail.path)
+    vim.command("set filetype=fmreply")
+    vim.command("set buftype=")
+
+def reply_ref(mpath):
+    mail_id, head_id, topic_id = g.cache_mail_topic.get(mpath)
+    path = vim.current.buffer.name
+
+    r = [path, False]
+
+    g.path_reply[mpath].append(r)
+    g.head_mail_reply[head_id].append(r)
+    g.topic_reply[topic_id].append(r)
+
+    g.maillist.refresh()
+
+
 def reply(_):
     line = vim.current.buffer[-1]
     if line[0] != '=':
         return
 
-    path = line[1:]
-    m = fm.Mail(path)
+    mpath = line[1:]
+    m = fm.Mail(mpath)
 
     path = '~/.fm.d/draft/%s.mail' % time.time()
     path = os.path.expanduser(path)
@@ -299,6 +320,10 @@ def reply(_):
     for line in lines:
         b.append('> ' + line.replace('\r', ''))
 
+    vim.command('update')
+
+    reply_ref(mpath)
+
 
 def mail_send_handler(popup, path):
     popup.append("mail path: %s" % path)
@@ -307,6 +332,13 @@ def mail_send_handler(popup, path):
     if ret:
         popup.append('send success')
         vim.command('set buftype=nofile')
+
+        for _, rs in g.path_reply.items():
+            for r in rs:
+                if r[0] == path:
+                    r[1] = True
+                    g.maillist.refresh()
+                    break
         return
 
     popup.append('send fail')
