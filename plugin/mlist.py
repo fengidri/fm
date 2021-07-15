@@ -23,24 +23,6 @@ import mpage
 def token(t, tp):
     return '\\%s;%s\\end;' % (tp, t)
 
-def need_hide_subject(m):
-    m.hide_subject = False
-
-    subject = m.Subject()
-    if m.index > 0:
-        if subject[0:3].lower() == 're:':
-            if subject[4:] == g.last_subject:
-                m.hide_subject = True
-                return
-        else:
-            if subject == g.last_subject:
-                m.hide_subject = True
-                return
-
-    g.last_subject = subject
-
-
-
 def check_reply(d, key):
     v = d.get(key)
     if not v:
@@ -69,9 +51,8 @@ class StrLine(object):
 
         from_name = from_name + ' '
 
-        if m.parent == m.thread_head:
-            if m.From().short == m.thread_head.From().short and not m.hide_title:
-                from_name = ''
+        if m.init_mail:
+            from_name = ''
 
         return from_name
 
@@ -101,16 +82,19 @@ class StrLine(object):
         return prefix
 
     def str_title(self, m):
-        if m.hide_title:
-            return token(m.short_msg[0:60], 'shortmsg')
-        elif m.title() == g.last_title and m != m.thread_head and g.thread:
-            m.hide_title = True
-            return token(m.short_msg[0:60], 'shortmsg')
-        else:
-            if m == m.thread_head:
-                return m.Subject().strip()
-            else:
-                return m.subject_nofeature()
+        if not g.thread:
+            return m.Subject().strip()
+
+        if m.init_mail:
+            s = m.subject_nofeature()
+            s = token(s, "subject")
+
+            return s
+
+        if m == m.thread_head:
+            return token(m.Subject().strip(), "subject")
+
+        return token(m.short_msg[0:60], 'shortmsg')
 
     def str_date(self, m):
         date = m.Date_ts()
@@ -157,12 +141,8 @@ class StrLine(object):
         return date
 
     def str_index(self, m):
-        if m == m.thread_head and m.num() == 1:
-            return ''
-
-
         index = ' ' * 4
-        if m.hide_title: # reply mail
+        if not m.init_mail: # reply mail
             return index
 
         if m.parent != m.thread_head or m == m.thread:
@@ -315,9 +295,6 @@ class MailList(object):
                 hide_mail = True
                 continue
 
-            need_hide_subject(m)
-
-            m.hide_title = False
             s = self.strline(m)
             g.last_title = m.title()
 
@@ -415,7 +392,6 @@ class MailList(object):
         node.append(frainui.Leaf('', None, None))
 
         for m in ms:
-            m.hide_title = False
             s = self.strline(m)
 
             name = os.path.basename(m.path)

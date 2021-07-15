@@ -222,6 +222,8 @@ class M(object):
         self.fold = None # for vim plugin
         self.topic_id = None
 
+        self.init_mail = False
+
         self.short_msg = ''
         self._features = None
 
@@ -356,6 +358,10 @@ class M(object):
         reply = []
         sub = []
         for m in self.sub_thread:
+            if m.parent == head:
+                if m.Subject()[0] == '[':
+                    m.init_mail = True
+
             if m.is_reply():
                 reply.append(m)
             else:
