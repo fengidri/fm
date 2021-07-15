@@ -160,7 +160,7 @@ class MailList(object):
             short_msg = token(short_msg, 'shortmsg')
 
         if g.thread:
-            fmt = '{stat}  {date} {prefix}{from_name}: {subject}{short_msg}'
+            fmt = '{stat}  {date} {prefix}{from_name} {subject}{short_msg}'
         else:
             fmt = ' {stat} {date} {subject} {topic}'
 
