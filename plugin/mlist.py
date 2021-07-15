@@ -53,24 +53,66 @@ def check_reply(d, key):
     return False
 
 
-class MailList(object):
+class StrLine(object):
     def __init__(self):
-        ui_list = LIST("FM List", self.list_handler, ft='fmindex',
-                use_current_buffer = True, title = 'FM List')
+        pass
 
-        self.ui_list = ui_list
+    def str_from_name(self, m):
+        f = m.From().short
+        if not f:
+            f = 'Me'
 
-        g.ui_list = ui_list
+        if f == 'Me':
+            from_name = token(f, 'Me')
+        else:
+            from_name = token(f, 'name')
 
-    def refresh(self):
-        pos = vim.current.window.cursor
+        from_name = from_name + ' '
 
-        g.ui_list.show()
-        g.ui_list.refresh()
+        if m.parent == m.thread_head:
+            if m.From().short == m.thread_head.From().short and not m.hide_title:
+                from_name = ''
 
-        vim.current.window.cursor = pos
+        return from_name
 
-    def strdate(self, m):
+    def str_stat(self, m):
+        stat = '   '
+        if m.isnew:
+            if m.From().isme:
+                m.mark_readed()
+            else:
+                stat = '*  '
+
+        if m.flag:
+            stat += '⚑'
+        else:
+            stat += ' '
+
+        return stat
+
+
+    def str_prefix(self, m):
+        if m.parent:
+            i1 = m.parent.index * '|   '
+            prefix = '%s|---' %(i1, )
+        else:
+            prefix = ''
+
+        return prefix
+
+    def str_title(self, m):
+        if m.hide_title:
+            return token(m.short_msg[0:60], 'shortmsg')
+        elif m.title() == g.last_title and m != m.thread_head and g.thread:
+            m.hide_title = True
+            return token(m.short_msg[0:60], 'shortmsg')
+        else:
+            if m == m.thread_head:
+                return m.Subject().strip()
+            else:
+                return m.subject_nofeature()
+
+    def str_date(self, m):
         date = m.Date_ts()
         if g.config_relative_time:
             if not m.parent:
@@ -109,90 +151,93 @@ class MailList(object):
         else:
             date = time.strftime("%m-%d %H:%M", time.localtime(date))
 
+        if time.time() - m.Date_ts() < 3600 * 24:
+            date = token(date, 'time')
+
         return date
 
-    def str_subject(self, m):
-        head = m.thread_head
+    def str_index(self, m):
+        if m == m.thread_head and m.num() == 1:
+            return ''
 
-        if head == m:
-            return m.Subject().strip()
+
+        index = ' ' * 4
+        if m.hide_title: # reply mail
+            return index
+
+        if m.parent != m.thread_head or m == m.thread:
+            return index
+
+        head = m.thread_head
 
         head_features = head.features()
         mail_features = m.features()
 
-        fs = []
-
+        ## got like "03/15", and set index = 03
         for f in mail_features:
             if f in head_features:
                 continue
 
-            fs.append(f)
+            if f.find('/') > -1:
+                t = f.split('/', 1)
+                if t[0].isdigit() and t[1].isdigit():
+                    index = t[0]
+                    break
 
-        return '%s. %s' % (' '.join(fs),  m.subject_nofeature())
+        if len(index) < 3:
+            index = '   ' + index
 
+        return index[-3:] + ' '
 
     def strline(self, m):
-        stat = '   '
-        if m.isnew:
-            if m.From().isme:
-                m.mark_readed()
-            else:
-                stat = '*  '
-
-        if m.flag:
-            stat += '⚑'
-        else:
-            stat += ' '
-
-        date = self.strdate(m)
-        if time.time() - m.Date_ts() < 3600 * 24:
-            date = token(date, 'time')
-
-        f = m.From().short
-        if not f:
-            f = 'Me'
-
-        from_name = token(f, 'name')
-
-        if m.parent:
-            i1 = m.parent.index * '|   '
-            prefix = '%s|---' %(i1, )
-        else:
-            prefix = ''
-
-        short_msg = ''
-        if m.hide_title:
-            subject = ''
-            short_msg = m.short_msg[0:60]
-        elif m.title() == g.last_title and m != m.thread_head and g.thread:
-            subject = ''
-            short_msg = m.short_msg[0:60]
-            m.hide_title = True
-        else:
-            subject = self.str_subject(m)
-
+        stat      = self.str_stat(m)
+        date      = self.str_date(m)
+        prefix    = self.str_prefix(m)
+        title     = self.str_title(m)
+        index     = self.str_index(m)
+        from_name = self.str_from_name(m)
 
         ext = ''
         if g.exts:
             if m == m.thread_head:
                 ext += ' (%d)' % m.num()
 
-        if short_msg:
-            short_msg = token(short_msg, 'shortmsg')
-
         if g.thread:
-            fmt = '{stat}  {date} {prefix}{from_name} {subject}{short_msg}'
+            fmt = '{stat}  {date} {index}{prefix}{from_name}{title}'
         else:
-            fmt = ' {stat} {date} {subject} {topic}'
+            fmt = ' {stat} {date} {title} {topic}'
 
         return fmt.format(
                 stat      = stat,
                 date      = date,
+                index     = index,
                 prefix    = prefix,
                 from_name = from_name,
-                subject   = subject,
-                short_msg = short_msg
+                title = title
                 )
+
+
+class MailList(object):
+    def __init__(self):
+        ui_list = LIST("FM List", self.list_handler, ft='fmindex',
+                use_current_buffer = True, title = 'FM List')
+
+        self.ui_list = ui_list
+
+        g.ui_list = ui_list
+        self.strfmt = StrLine()
+
+    def strline(self, m):
+        return self.strfmt.strline(m)
+
+    def refresh(self):
+        pos = vim.current.window.cursor
+
+        g.ui_list.show()
+        g.ui_list.refresh()
+
+        vim.current.window.cursor = pos
+
 
     def reply_edit(self, leaf, listwin):
         mail = leaf.ctx
