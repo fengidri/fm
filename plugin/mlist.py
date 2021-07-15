@@ -111,7 +111,27 @@ class MailList(object):
 
         return date
 
-    def strline(self, m, head = None):
+    def str_subject(self, m):
+        head = m.thread_head
+
+        if head == m:
+            return m.Subject().strip()
+
+        head_features = head.features()
+        mail_features = m.features()
+
+        fs = []
+
+        for f in mail_features:
+            if f in head_features:
+                continue
+
+            fs.append(f)
+
+        return '%s. %s' % (' '.join(fs),  m.subject_nofeature())
+
+
+    def strline(self, m):
         stat = '   '
         if m.isnew:
             if m.From().isme:
@@ -133,7 +153,6 @@ class MailList(object):
             f = 'Me'
 
         from_name = token(f, 'name')
-        subject = m.Subject().strip()
 
         if m.parent:
             i1 = m.parent.index * '|   '
@@ -149,11 +168,13 @@ class MailList(object):
             subject = ''
             short_msg = m.short_msg[0:60]
             m.hide_title = True
+        else:
+            subject = self.str_subject(m)
 
 
         ext = ''
         if g.exts:
-            if m == head:
+            if m == m.thread_head:
                 ext += ' (%d)' % m.num()
 
         if short_msg:
@@ -252,7 +273,7 @@ class MailList(object):
             need_hide_subject(m)
 
             m.hide_title = False
-            s = self.strline(m, head)
+            s = self.strline(m)
             g.last_title = m.title()
 
             name = os.path.basename(m.path)

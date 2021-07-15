@@ -223,6 +223,7 @@ class M(object):
         self.topic_id = None
 
         self.short_msg = ''
+        self._features = None
 
     def get_mail(self):
         if self.mail:
@@ -239,6 +240,32 @@ class M(object):
     def header(self, header):
         h = self.get_mail().get(header, '')
         return decode(h)
+
+    def features(self):
+        if self._features != None:
+            return self._features
+
+        self._features = []
+        s = self.Subject().strip()
+
+        if not s or s[0] != '[':
+            return self._features
+
+        pos = s.find(']')
+        if pos == -1:
+            return self._features
+
+        f = s[1:pos]
+        self._features = f.split()
+        return self._features
+
+    def subject_nofeature(self):
+        s = self.Subject()
+        if not self.features():
+            return s
+
+        pos = s.find(']')
+        return s[pos + 1:].strip()
 
     def real_header(self, h):
         s = self.get_mail().get(h, '')
