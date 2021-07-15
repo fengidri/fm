@@ -254,6 +254,10 @@ class Topic(object):
 
         return max([x.last_recv_ts() for x in tops])
 
+    def threads(self):
+        top = self.db.tops
+        return top[::-1]
+
     def output(self, reverse = False):
         top = self.db.tops
         if reverse:

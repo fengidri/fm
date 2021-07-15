@@ -268,54 +268,48 @@ class MailList(object):
 
             node.append(l)
 
+    def topic_thread_list(self, node, listwin, th):
+        o = []
+        th = th.output(o)
+        th = o
+
+        head = th[0]
+
+        has_reply = check_reply(g.head_mail_reply, head.rowid)
+
+        if g.fold_hide and head.fold and head.news() == 0 and not has_reply:
+            return False
+
+        for m in th:
+            s = self.strline(m)
+
+            name = os.path.basename(m.path)
+
+            l = frainui.Leaf(name, m, self.mail_show, display = s, last_win=True, noindent = True)
+
+            node.append(l)
+
+            self.check_reply(node, m)
+
+        node.append(frainui.Leaf('', None, None))
+
+        return True
+
     def topic_list(self, node, listwin):
         topic = node.ctx
         topic.load()
 
         g.topic_opend.append(topic.get_id())
-
-        ms = topic.output(reverse=True)
-
-        g.last_title = None
-
-        head = None
-        last = None
         hide_mail = False
-        for m in ms:
-            if head != m.thread_head:
-                head = m.thread_head
 
-                if last:
-                    node.append(frainui.Leaf('', None, None))
-                    last = None
-
-            has_reply = check_reply(g.head_mail_reply, head.rowid)
-
-            if g.fold_hide and head.fold and head.news() == 0 and not has_reply:
+        for th in topic.threads():
+            show = self.topic_thread_list(node, listwin, th)
+            if not show:
                 hide_mail = True
-                continue
-
-            s = self.strline(m)
-            g.last_title = m.title()
-
-            name = os.path.basename(m.path)
-
-            l = frainui.Leaf(name, m, self.mail_show, display = s,
-                    last_win=True, noindent = True)
-
-            node.append(l)
-            last = l
-
-            self.check_reply(node, m)
-
-        if last:
-            node.append(frainui.Leaf('', None, None))
 
         if hide_mail:
             node.append(frainui.Leaf('   === SOME MAIL HIDDEN ===', None, None))
             node.append(frainui.Leaf('   ', None, None))
-
-        g.last_title = None
 
     def topic_defopen(self, topic):
         defopen = False

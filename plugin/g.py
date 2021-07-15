@@ -24,7 +24,6 @@ stash_info          = []
 topic_opend         = []
 topic_close         = []
 tips = None
-last_title = None
 auto_markreaded = True
 # show archived topic
 archived = 0
