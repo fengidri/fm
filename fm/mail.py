@@ -289,6 +289,15 @@ class M(object):
                 ts = t
         return ts
 
+    def appear_ts(self):
+        ts = self.Date_ts()
+
+        for m in self.sub_thread:
+            t = m.appear_ts()
+            if t < ts:
+                ts = t
+        return ts
+
     def num(self):
         s = 1
         for m in self.sub_thread:

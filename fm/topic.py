@@ -154,7 +154,7 @@ class TopicDb(object):
             m.thread(0, m)
 
 
-        self.tops.sort(key = lambda x: x.last_recv_ts())
+        self.tops.sort(key = lambda x: x.appear_ts())
 
 class Topic(object):
     def __init__(self, mail, record = None):
