@@ -324,7 +324,7 @@ class MailList(object):
                 if topic.get_id() in g.topic_opend:
                     defopen = True
         else:
-            if topic.get_unread():
+            if topic.get_unread() > 0:
                 return True
 
             defopen = check_reply(g.topic_reply, topic.get_rowid())
