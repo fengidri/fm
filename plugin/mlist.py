@@ -73,13 +73,32 @@ class StrLine(object):
 
 
     def str_prefix(self, m):
-        if m.parent:
-            i1 = m.parent.index * '|   '
-            prefix = '%s|---' %(i1, )
-        else:
-            prefix = ''
+        if not m.parent:
+            return ''
 
-        return prefix
+        if m.islast:
+            if m.init_mail:
+                p = ['`==>']
+            else:
+                p = ['`-->']
+        else:
+            if m.init_mail:
+                p = ['|==>']
+            else:
+                p = ['|-->']
+
+        pa = m.parent
+
+        while pa.parent:
+            if pa.islast:
+                prefix = '    '
+            else:
+                prefix = '|    '
+
+            p.insert(0, prefix)
+            pa = pa.parent
+
+        return ''.join(p)
 
     def str_title(self, m):
         if not g.thread:
