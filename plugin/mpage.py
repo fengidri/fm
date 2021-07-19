@@ -242,8 +242,8 @@ def current_mail():
     path = line[1:]
     return fm.Mail(path)
 
-def reply_edit(mail):
-    vim.command('e ' + mail.path)
+def reply_edit(path):
+    vim.command('e ' + path)
     vim.command("set filetype=fmreply")
     vim.command("set buftype=")
 
@@ -251,26 +251,21 @@ def reply_ref(mpath):
     mail_id, head_id, topic_id = g.cache_mail_topic.get(mpath)
     path = vim.current.buffer.name
 
-    r = [path, False]
+    r = g.path_reply.get(mpath)
+    if r:
+        r[0] = path
+        r[1] = False
+    else:
+        r = [path, False]
 
-    g.path_reply[mpath].append(r)
-    g.head_mail_reply[head_id].append(r)
-    g.topic_reply[topic_id].append(r)
+        g.path_reply[mpath] = r
+        g.head_mail_reply[head_id].append(r)
+        g.topic_reply[topic_id].append(r)
 
     g.maillist.refresh()
 
 
-def reply(_):
-    line = vim.current.buffer[-1]
-    if line[0] != '=':
-        return
-
-    mpath = line[1:]
-    m = fm.Mail(mpath)
-
-    path = '~/.fm.d/draft/%s.mail' % time.time()
-    path = os.path.expanduser(path)
-
+def __reply(m, path):
     vim.command('e ' + path)
     vim.command("set filetype=fmreply")
     vim.command("set buftype=")
@@ -301,7 +296,14 @@ def reply(_):
             if a.addr != fm.conf.me:
                 c.append(a)
 
-        b.append('Cc: ' + c.format())
+        prefix = 'Cc: '
+
+        for a in c[0:-1]:
+            a = a.format()
+            b.append(prefix + a + ',')
+            prefix = '    '
+
+        b.append(prefix + c[-1].format())
 
     if m.Message_id():
         b.append('In-Reply-To: ' + m.Message_id())
@@ -310,20 +312,52 @@ def reply(_):
     reply_copy_header(m, "List-ID")
     reply_copy_header(m, "X-Mailing-List")
 
+    header_num = len(b)
+
     b.append('')
 
     b = b
 
     b.append('On %s, %s wrote:' % (m.Date(), m.From().format()))
 
+
     lines = m.Body().split('\n')
     for line in lines:
         b.append('> ' + line.replace('\r', ''))
 
+    pyvim.feedkeys("o\<esc>o\<esc>o\<up>")
+
+    return header_num
+
+
+def reply(_):
+    line = vim.current.buffer[-1]
+    if line[0] != '=':
+        return
+
+    mpath = line[1:]
+    m = fm.Mail(mpath)
+
+    linenu = vim.current.window.cursor[0]
+    for offset, line in enumerate(vim.current.buffer[1:]):
+        if line and line[0] == '=':
+            break
+    linenu = linenu - offset
+
+    path = '~/.fm.d/draft/%s.mail' % time.time()
+    path = os.path.expanduser(path)
+
+    offset = __reply(m, path)
+
     vim.command('update')
 
-    reply_ref(mpath)
+    linenu = offset + linenu
+    if linenu < offset:
+        linenu = offset
+    vim.current.window.cursor = (linenu, 0)
+    vim.command('normal zz')
 
+    reply_ref(mpath)
 
 def mail_send_handler(popup, path):
     popup.append("mail path: %s" % path)
@@ -333,12 +367,12 @@ def mail_send_handler(popup, path):
         popup.append('send success')
         vim.command('set buftype=nofile')
 
-        for _, rs in g.path_reply.items():
-            for r in rs:
-                if r[0] == path:
-                    r[1] = True
-                    g.maillist.refresh()
-                    break
+
+        for mpath, r in g.path_reply.items():
+            if r[0] == path:
+                r[1] = True
+                g.maillist.refresh()
+                break
         return
 
     popup.append('send fail')

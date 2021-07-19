@@ -32,7 +32,7 @@ fold_hide = True
 # cache for reply file.
 # key: mail path
 # value: [reply path, send status]
-path_reply = defaultdict(list)
+path_reply = {}
 head_mail_reply = defaultdict(list)
 topic_reply = defaultdict(list)
 

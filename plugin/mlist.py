@@ -203,8 +203,15 @@ class StrLine(object):
 
         if g.thread:
             fmt = '{stat}  {date} {index}{prefix}{from_name}{title}'
+
+            reply = g.path_reply.get(m.path)
+            if reply and not reply[1]:
+                fmt = '{stat}  {date} {index}{prefix}{from_name}{title} [Reply-UNDONE]'
+
         else:
             fmt = ' {stat} {date} {title} {topic}'
+
+
 
         return fmt.format(
                 stat      = stat,
@@ -237,18 +244,16 @@ class MailList(object):
 
         vim.current.window.cursor = pos
 
-
-    def reply_edit(self, leaf, listwin):
-        mail = leaf.ctx
-
-        mpage.reply_edit(mail)
-
-        g.pager_buf = vim.current.buffer
-        g.pager_mail = mail
-
-
     def mail_show(self, leaf, listwin):
         mail = leaf.ctx
+
+        reply = g.path_reply.get(mail.path)
+        if reply and not reply[1]:
+            mpage.reply_edit(reply[0])
+
+            g.pager_buf = vim.current.buffer
+            g.pager_mail = mail
+            return
 
         if g.auto_markreaded and mail.isnew:
             mail.mark_readed()
@@ -269,23 +274,23 @@ class MailList(object):
         g.pager_buf = vim.current.buffer
         g.pager_mail = mail
 
-    def check_reply(self, node, mail):
-        reply = g.path_reply.get(mail.path)
-        if not reply:
-            return
-
-        for r in reply:
-            if r[1]:
-                continue
-
-            m = fm.Mail(r[0])
-
-            name = (" " * 30)  + "Reply-UNDONE"
-
-            l = frainui.Leaf(name, m, self.reply_edit,
-                    display = name, last_win=True, noindent = True)
-
-            node.append(l)
+#    def check_reply(self, node, mail):
+#        reply = g.path_reply.get(mail.path)
+#        if not reply:
+#            return
+#
+#        for r in reply:
+#            if r[1]:
+#                continue
+#
+#            m = fm.Mail(r[0])
+#
+#            name = (" " * 30)  + "Reply-UNDONE"
+#
+#            l = frainui.Leaf(name, m, self.reply_edit,
+#                    display = name, last_win=True, noindent = True)
+#
+#            node.append(l)
 
     def topic_thread_list(self, node, listwin, th):
         o = []
@@ -308,7 +313,7 @@ class MailList(object):
 
             node.append(l)
 
-            self.check_reply(node, m)
+#            self.check_reply(node, m)
 
         node.append(frainui.Leaf('', None, None))
 
