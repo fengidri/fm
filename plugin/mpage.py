@@ -359,6 +359,17 @@ def reply(_):
 
     reply_ref(mpath)
 
+def reply_cancel(_):
+    path = vim.current.buffer.name
+
+    for mpath, r in g.path_reply.items():
+        if r[0] == path:
+            r[1] = True
+            g.maillist.refresh()
+
+    vim.command('update')
+    vim.command('quit')
+
 def mail_send_handler(popup, path):
     popup.append("mail path: %s" % path)
     ret = fm.sendmail(popup, path)
@@ -439,9 +450,9 @@ page_menu.append(PopupMenuItem("==========================="))
 page_menu.append(PopupMenuItem("Link mail to /tmp/mail.link", link_mail))
 
 reply_menu = []
-reply_menu.append(PopupMenuItem("Set Acked-By",                reply_by, 'Acked-by'))
-reply_menu.append(PopupMenuItem("Set Reviewed-By ",            reply_by, 'Reviewed-by'))
-reply_menu.append(PopupMenuItem("===========================", None))
-reply_menu.append(PopupMenuItem("GIT Commit log append",       mail_git_append))
-reply_menu.append(PopupMenuItem("===========================", None))
+reply_menu.append(PopupMenuItem("Acked-By",                reply_by, 'Acked-by'))
+reply_menu.append(PopupMenuItem("Reviewed-By ",            reply_by, 'Reviewed-by'))
+reply_menu.append(PopupMenuItem("==========================="))
+reply_menu.append(PopupMenuItem("Cancel Reply",                reply_cancel))
+reply_menu.append(PopupMenuItem("==========================="))
 reply_menu.append(PopupMenuItem("Send ...",                    MailSend))
